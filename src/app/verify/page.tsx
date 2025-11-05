@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { sha256HexBytes } from "../../lib/sha256";
+import AppShell from "@/components/AppShell";
 
 export default function VerifyPage() {
   const [hash, setHash] = useState<string | null>(null);
@@ -44,12 +45,32 @@ export default function VerifyPage() {
     return u;
   };
 
+  const extractEmbeddedHash = (bytes: ArrayBuffer): string | null => {
+    try {
+      const text = new TextDecoder("latin1").decode(new Uint8Array(bytes));
+      const m = text.match(/verify\?h=(0x[0-9a-fA-F]{64})/);
+      return m ? m[1] : null;
+    } catch {
+      return null;
+    }
+  };
+
   const verifyFromBytes = async (bytes: ArrayBuffer) => {
     setVerifying(true);
     try {
       const h = await sha256HexBytes(bytes);
       setHash(h);
       await verifyHash(h);
+      // If not found, try to read the embedded verify URL hash (from QR caption)
+      // Wait a tick for data to update
+      await new Promise((r) => setTimeout(r, 100));
+      if (!data || data?.status === "not_found") {
+        const embedded = extractEmbeddedHash(bytes);
+        if (embedded && embedded !== h) {
+          setHash(embedded);
+          await verifyHash(embedded);
+        }
+      }
       setFileResult({ hash: h });
     } catch (err: any) {
       setFileResult({ error: String(err) });
@@ -132,422 +153,112 @@ export default function VerifyPage() {
   const statusInfo = data?.status ? getStatusDisplay(data.status) : null;
 
   return (
-    <div style={{ 
-      minHeight: "100vh", 
-      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-      padding: "24px"
-    }}>
-      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-        {/* Header */}
-        <div style={{
-          background: "white",
-          borderRadius: "20px",
-          padding: "48px 32px",
-          marginBottom: "32px",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
-          textAlign: "center"
-        }}>
-          <div style={{
-            width: "80px",
-            height: "80px",
-            margin: "0 auto 24px",
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "40px"
-          }}>
-            🎓
-          </div>
-          <h1 style={{ 
-            margin: "0 0 12px 0", 
-            fontSize: "42px", 
-            fontWeight: 800, 
-            color: "#1a202c",
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent"
-          }}>
-            Certificate Verification
-          </h1>
-          <p style={{ 
-            margin: 0, 
-            color: "#718096", 
-            fontSize: "18px",
-            maxWidth: "600px",
-            marginLeft: "auto",
-            marginRight: "auto"
-          }}>
-            Verify the authenticity of your certificate on the blockchain. Enter a hash, upload a PDF, or provide a URL.
-          </p>
-        </div>
+    <AppShell>
+    <div className="max-w-4xl py-2">
+      <h1 className="text-3xl font-semibold tracking-tight">Verify Certificate</h1>
+      <p className="mt-2 text-sm text-muted-foreground">Enter a hash, upload a PDF, or provide a URL.</p>
 
-        {/* Verification Result */}
-        {(data || fileResult) && (
-          <div style={{
-            background: "white",
-            borderRadius: "20px",
-            padding: "32px",
-            marginBottom: "32px",
-            boxShadow: "0 10px 40px rgba(0,0,0,0.2)"
-          }}>
-            {statusInfo && (
-              <div style={{
-                padding: "32px",
-                background: statusInfo.bg,
-                borderRadius: "16px",
-                marginBottom: "32px",
-                textAlign: "center",
-                border: `3px solid ${statusInfo.borderColor}`
-              }}>
-                <div style={{
-                  width: "100px",
-                  height: "100px",
-                  margin: "0 auto 20px",
-                  background: statusInfo.iconBg,
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "48px",
-                  color: "white",
-                  fontWeight: "bold",
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.2)"
-                }}>
-                  {statusInfo.icon}
-                </div>
-                <h2 style={{ 
-                  margin: "0 0 12px 0", 
-                  fontSize: "32px", 
-                  fontWeight: 700, 
-                  color: statusInfo.color 
-                }}>
-                  {statusInfo.text}
-                </h2>
-                <p style={{ margin: 0, color: "#1a202c", fontSize: "16px", fontWeight: 500 }}>
-                  {statusInfo.desc}
-                </p>
-              </div>
-            )}
-
-            {data?.certificate && (
-              <div style={{
-                padding: "24px",
-                background: "linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%)",
-                borderRadius: "16px",
-                marginBottom: "24px",
-                border: "2px solid #e2e8f0"
-              }}>
-                <h3 style={{ 
-                  margin: "0 0 20px 0", 
-                  fontSize: "22px", 
-                  fontWeight: 700, 
-                  color: "#1a202c",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px"
-                }}>
-                  <span style={{ fontSize: "28px" }}>📜</span>
-                  Certificate Details
-                </h3>
-                <div style={{ 
-                  display: "grid", 
-                  gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", 
-                  gap: "20px" 
-                }}>
-                  {data.certificate.studentName && (
-                    <div style={{
-                      padding: "16px",
-                      background: "white",
-                      borderRadius: "12px",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-                    }}>
-                      <div style={{ fontSize: "12px", color: "#718096", marginBottom: "6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Student Name</div>
-                      <div style={{ fontSize: "18px", fontWeight: 700, color: "#1a202c" }}>{data.certificate.studentName}</div>
-                    </div>
-                  )}
-                  {data.certificate.studentId && (
-                    <div style={{
-                      padding: "16px",
-                      background: "white",
-                      borderRadius: "12px",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-                    }}>
-                      <div style={{ fontSize: "12px", color: "#718096", marginBottom: "6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Student ID</div>
-                      <div style={{ fontSize: "18px", fontWeight: 700, color: "#1a202c" }}>{data.certificate.studentId}</div>
-                    </div>
-                  )}
-                  {data.certificate.university && (
-                    <div style={{
-                      padding: "16px",
-                      background: "white",
-                      borderRadius: "12px",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-                    }}>
-                      <div style={{ fontSize: "12px", color: "#718096", marginBottom: "6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>University</div>
-                      <div style={{ fontSize: "18px", fontWeight: 700, color: "#1a202c" }}>{data.certificate.university}</div>
-                    </div>
-                  )}
-                  {data.certificate.programName && (
-                    <div style={{
-                      padding: "16px",
-                      background: "white",
-                      borderRadius: "12px",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-                    }}>
-                      <div style={{ fontSize: "12px", color: "#718096", marginBottom: "6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Program</div>
-                      <div style={{ fontSize: "18px", fontWeight: 700, color: "#1a202c" }}>
-                        {data.certificate.programName}
-                        {data.certificate.programCode && <span style={{ fontSize: "14px", color: "#718096", fontWeight: 500 }}> ({data.certificate.programCode})</span>}
-                      </div>
-                    </div>
-                  )}
-                  {data.certificate.date && (
-                    <div style={{
-                      padding: "16px",
-                      background: "white",
-                      borderRadius: "12px",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-                    }}>
-                      <div style={{ fontSize: "12px", color: "#718096", marginBottom: "6px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Issue Date</div>
-                      <div style={{ fontSize: "18px", fontWeight: 700, color: "#1a202c" }}>{data.certificate.date}</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div style={{
-              padding: "20px",
-              background: "#f7fafc",
-              borderRadius: "12px",
-              fontSize: "14px",
-              color: "#1a202c",
-              border: "1px solid #e2e8f0"
-            }}>
-              <div style={{ marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ fontSize: "18px" }}>🔐</span>
-                <strong style={{ fontSize: "16px" }}>Certificate Hash:</strong>
-              </div>
-              <code style={{ 
-                display: "block",
-                background: "white", 
-                padding: "12px 16px", 
-                borderRadius: "8px",
-                fontFamily: "monospace",
-                fontSize: "13px",
-                color: "#1a202c",
-                wordBreak: "break-all",
-                border: "1px solid #e2e8f0"
-              }}>
-                {hash || data?.hash || "N/A"}
-              </code>
-              {data?.issuanceTimestamp && (
-                <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #e2e8f0" }}>
-                  <strong>Issued On:</strong> {new Date(data.issuanceTimestamp * 1000).toLocaleString()}
+      {(data || fileResult) && (
+        <div className="mt-6 rounded-md border p-4">
+          {statusInfo && (
+            <div className="mb-4">
+              <div className="text-base font-semibold" style={{ color: statusInfo.color }}>{statusInfo.text}</div>
+              <div className="text-sm" style={{ color: statusInfo.color }}>{statusInfo.desc}</div>
+            </div>
+          )}
+          {data?.certificate && (
+            <div className="mb-3 grid gap-2 sm:grid-cols-2">
+              {data.certificate.studentName && (
+                <div className="rounded-md border p-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Student Name</div>
+                  <div className="mt-1 text-sm font-semibold">{data.certificate.studentName}</div>
                 </div>
               )}
-              {data?.certificate?.txHash && (
-                <div style={{ marginTop: "12px" }}>
-                  <strong>Transaction:</strong>{" "}
-                  <a 
-                    href={`https://amoy.polygonscan.com/tx/${data.certificate.txHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ 
-                      color: "#667eea", 
-                      textDecoration: "underline",
-                      fontWeight: 600
-                    }}
-                  >
-                    View on Polygonscan
-                  </a>
-                  <span style={{ marginLeft: "8px", color: "#718096", fontFamily: "monospace", fontSize: "12px" }}>
-                    ({data.certificate.txHash.slice(0, 10)}...{data.certificate.txHash.slice(-8)})
-                  </span>
+              {data.certificate.studentId && (
+                <div className="rounded-md border p-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Student ID</div>
+                  <div className="mt-1 font-mono text-xs">{data.certificate.studentId}</div>
+                </div>
+              )}
+              {data.certificate.university && (
+                <div className="rounded-md border p-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">University</div>
+                  <div className="mt-1 text-sm font-semibold">{data.certificate.university}</div>
+                </div>
+              )}
+              {data.certificate.programName && (
+                <div className="rounded-md border p-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Program</div>
+                  <div className="mt-1 text-sm font-semibold">
+                    {data.certificate.programName}
+                    {data.certificate.programCode && (
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">({data.certificate.programCode})</span>
+                    )}
+                  </div>
+                </div>
+              )}
+              {data.certificate.date && (
+                <div className="rounded-md border p-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Issue Date</div>
+                  <div className="mt-1 text-sm font-semibold">{data.certificate.date}</div>
                 </div>
               )}
             </div>
-          </div>
-        )}
-
-        {/* Verification Methods */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "24px", marginBottom: "32px" }}>
-          {/* Hash Input */}
-          <div style={{
-            background: "white",
-            borderRadius: "20px",
-            padding: "28px",
-            boxShadow: "0 10px 40px rgba(0,0,0,0.2)"
-          }}>
-            <div style={{ fontSize: "32px", marginBottom: "16px" }}>🔑</div>
-            <h2 style={{ margin: "0 0 16px 0", fontSize: "20px", fontWeight: 700, color: "#1a202c" }}>
-              Verify by Hash
-            </h2>
-            <p style={{ margin: "0 0 20px 0", fontSize: "14px", color: "#718096", lineHeight: "1.6" }}>
-              Enter the certificate hash directly
-            </p>
-            <form onSubmit={onVerifyHash} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <input 
-                placeholder="Enter 64-character hash" 
-                value={hashInput} 
-                onChange={(e) => setHashInput(e.target.value)}
-                style={{ 
-                  width: "100%",
-                  padding: "14px 16px", 
-                  borderRadius: "10px", 
-                  border: "2px solid #e2e8f0",
-                  fontSize: "14px",
-                  color: "#1a202c",
-                  fontFamily: "monospace",
-                  boxSizing: "border-box"
-                }}
-              />
-              <button 
-                type="submit"
-                disabled={loading || !hashInput.trim()}
-                style={{
-                  padding: "14px 24px",
-                  background: (loading || !hashInput.trim()) ? "#cbd5e0" : "#667eea",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "10px",
-                  fontWeight: 600,
-                  cursor: (loading || !hashInput.trim()) ? "not-allowed" : "pointer",
-                  fontSize: "15px",
-                  transition: "all 0.2s"
-                }}
-              >
-                {loading ? "Verifying..." : "Verify Hash"}
-              </button>
-            </form>
-          </div>
-
-          {/* PDF Upload */}
-          <div style={{
-            background: "white",
-            borderRadius: "20px",
-            padding: "28px",
-            boxShadow: "0 10px 40px rgba(0,0,0,0.2)"
-          }}>
-            <div style={{ fontSize: "32px", marginBottom: "16px" }}>📄</div>
-            <h2 style={{ margin: "0 0 16px 0", fontSize: "20px", fontWeight: 700, color: "#1a202c" }}>
-              Upload PDF
-            </h2>
-            <p style={{ margin: "0 0 20px 0", fontSize: "14px", color: "#718096", lineHeight: "1.6" }}>
-              Upload your certificate PDF file
-            </p>
-            <form onSubmit={onVerifyFile} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <div>
-                <label style={{ 
-                  display: "block", 
-                  marginBottom: "8px", 
-                  fontSize: "14px", 
-                  fontWeight: 600,
-                  color: "#1a202c"
-                }}>
-                  Select PDF File
-                </label>
-                <input 
-                  type="file" 
-                  accept="application/pdf" 
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  style={{ 
-                    width: "100%",
-                    padding: "12px", 
-                    borderRadius: "10px", 
-                    border: "2px solid #e2e8f0",
-                    fontSize: "14px",
-                    color: "#1a202c",
-                    boxSizing: "border-box"
-                  }}
-                />
+          )}
+          <div className="rounded-md border p-3 text-sm">
+            <div className="mb-1 font-semibold">Certificate Hash</div>
+            <code className="block rounded border bg-white p-2 font-mono text-[12px] dark:bg-slate-900">
+              {hash || data?.hash || "N/A"}
+            </code>
+            {data?.issuanceTimestamp && (
+              <div className="mt-2 text-xs"><strong>Issued On:</strong> {new Date(data.issuanceTimestamp * 1000).toLocaleString()}</div>
+            )}
+            {data?.certificate?.txHash && (
+              <div className="mt-1 text-xs">
+                <strong>Tx:</strong>{" "}
+                <a className="text-primary underline" target="_blank" rel="noopener noreferrer" href={`https://amoy.polygonscan.com/tx/${data.certificate.txHash}`}>
+                  Polygonscan
+                </a>
+                <span className="ml-2 font-mono text-muted-foreground">({data.certificate.txHash.slice(0, 10)}...{data.certificate.txHash.slice(-8)})</span>
               </div>
-              <button 
-                type="submit" 
-                disabled={!file || verifying}
-                style={{
-                  padding: "14px 24px",
-                  background: (!file || verifying) ? "#cbd5e0" : "#667eea",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "10px",
-                  fontWeight: 600,
-                  cursor: (!file || verifying) ? "not-allowed" : "pointer",
-                  fontSize: "15px",
-                  transition: "all 0.2s"
-                }}
-              >
-                {verifying ? "Verifying..." : "Verify PDF"}
-              </button>
-            </form>
-          </div>
-
-          {/* PDF URL */}
-          <div style={{
-            background: "white",
-            borderRadius: "20px",
-            padding: "28px",
-            boxShadow: "0 10px 40px rgba(0,0,0,0.2)"
-          }}>
-            <div style={{ fontSize: "32px", marginBottom: "16px" }}>🔗</div>
-            <h2 style={{ margin: "0 0 16px 0", fontSize: "20px", fontWeight: 700, color: "#1a202c" }}>
-              Verify by URL
-            </h2>
-            <p style={{ margin: "0 0 20px 0", fontSize: "14px", color: "#718096", lineHeight: "1.6" }}>
-              Provide PDF URL or IPFS link
-            </p>
-            <form onSubmit={onVerifyUrl} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <input 
-                placeholder="https://example.com/cert.pdf or ipfs://Qm..." 
-                value={url} 
-                onChange={(e) => setUrl(e.target.value)}
-                style={{ 
-                  width: "100%",
-                  padding: "14px 16px", 
-                  borderRadius: "10px", 
-                  border: "2px solid #e2e8f0",
-                  fontSize: "14px",
-                  color: "#1a202c",
-                  boxSizing: "border-box"
-                }}
-              />
-              <button 
-                type="submit"
-                disabled={!url.trim() || verifying}
-                style={{
-                  padding: "14px 24px",
-                  background: (!url.trim() || verifying) ? "#cbd5e0" : "#667eea",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "10px",
-                  fontWeight: 600,
-                  cursor: (!url.trim() || verifying) ? "not-allowed" : "pointer",
-                  fontSize: "15px",
-                  transition: "all 0.2s"
-                }}
-              >
-                {verifying ? "Verifying..." : "Verify from URL"}
-              </button>
-            </form>
+            )}
           </div>
         </div>
+      )}
 
-        {/* Error Display */}
-        {(data?.error || fileResult?.error) && (
-          <div style={{
-            padding: "20px",
-            background: "#fee2e2",
-            borderRadius: "16px",
-            color: "#991b1b",
-            border: "2px solid #ef4444",
-            fontSize: "15px"
-          }}>
-            <strong>Error:</strong> {data?.error || fileResult?.error}
-          </div>
-        )}
+      <div className="mt-8 grid gap-6 sm:grid-cols-3">
+        <div>
+          <h2 className="text-sm font-semibold">Verify by Hash</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Enter the certificate hash</p>
+          <form onSubmit={onVerifyHash} className="mt-3 grid gap-2">
+            <input className="h-10 rounded-md border px-3 font-mono text-sm outline-none focus:ring-2" placeholder="64-char hash" value={hashInput} onChange={(e) => setHashInput(e.target.value)} />
+            <button type="submit" disabled={loading || !hashInput.trim()} className="btn btn-primary h-10">{loading ? "Verifying..." : "Verify Hash"}</button>
+          </form>
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold">Upload PDF</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Upload your certificate file</p>
+          <form onSubmit={onVerifyFile} className="mt-3 grid gap-2">
+            <input type="file" accept="application/pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} className="h-10 rounded-md border bg-white px-3 text-sm file:mr-3 file:rounded file:border-0 file:bg-muted file:px-3 file:py-2 file:text-xs file:font-medium" />
+            <button type="submit" disabled={!file || verifying} className="btn btn-primary h-10">{verifying ? "Verifying..." : "Verify PDF"}</button>
+          </form>
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold">Verify by URL</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Enter a PDF or IPFS URL</p>
+          <form onSubmit={onVerifyUrl} className="mt-3 grid gap-2">
+            <input className="h-10 rounded-md border px-3 text-sm outline-none focus:ring-2" placeholder="https://... or ipfs://..." value={url} onChange={(e) => setUrl(e.target.value)} />
+            <button type="submit" disabled={!url.trim() || verifying} className="btn btn-primary h-10">{verifying ? "Verifying..." : "Verify URL"}</button>
+          </form>
+        </div>
       </div>
+
+      {(data?.error || fileResult?.error) && (
+        <div className="mt-6 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <strong>Error:</strong> {data?.error || fileResult?.error}
+        </div>
+      )}
     </div>
+    </AppShell>
   );
 }

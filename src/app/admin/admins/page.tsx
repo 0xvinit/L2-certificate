@@ -74,18 +74,7 @@ export default function AdminsPage() {
           marginBottom: "24px",
           boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
         }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-            <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700, color: "#1a202c" }}>Manage Admins</h1>
-            <Link href="/admin/dashboard" style={{
-              padding: "8px 16px",
-              background: "#667eea",
-              color: "white",
-              textDecoration: "none",
-              borderRadius: "8px",
-              fontWeight: 600,
-              fontSize: "14px"
-            }}>← Back to Dashboard</Link>
-          </div>
+       
 
           <WalletConnection />
         </div>

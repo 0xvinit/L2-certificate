@@ -14,17 +14,29 @@ export async function GET(req: NextRequest) {
       return new Response(JSON.stringify({ error: "Missing params" }), { status: 400 });
     }
 
-    const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-    const contract = new ethers.Contract(CERTIFICATE_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, provider);
-
-    const [valid, revoked] = await contract.isValid(h);
-    const cert = await contract.getCertificate(h);
+    let valid = false;
+    let revoked = false;
+    let cert: any = { metadataURI: "", issuanceTimestamp: 0, revoked: false };
+    try {
+      const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+      const contract = new ethers.Contract(CERTIFICATE_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, provider);
+      const statusTuple = await contract.isValid(h);
+      valid = Boolean(statusTuple[0]);
+      revoked = Boolean(statusTuple[1]);
+      cert = await contract.getCertificate(h);
+    } catch (chainErr) {
+      // Chain not reachable or wrong network; continue with DB fallback
+      console.warn("Chain verification failed:", chainErr);
+    }
 
     // Get certificate details from MongoDB
-    let certDetails = null;
+    let certDetails: any = null;
     try {
       const certCol = await collection("certificates");
-      certDetails = await certCol.findOne({ hash: h });
+      // Allow lookup by either on-chain hash or final PDF hash (uploaded file case)
+      certDetails = await certCol.findOne({ $or: [{ hash: h }, { finalPdfHash: h }] });
+      // If matched by finalPdfHash, use the on-chain hash for chain verification
+      const chainHash = certDetails?.hash || h;
       if (certDetails) {
         // Get program details
         if (certDetails.programId) {
@@ -48,14 +60,30 @@ export async function GET(req: NextRequest) {
           } catch {}
         }
       }
+      // If we didn't have a valid/ revoked status yet, or chain said not found, try again with the chainHash
+      if (!valid && !revoked && chainHash) {
+        try {
+          const provider2 = new ethers.JsonRpcProvider(process.env.RPC_URL);
+          const contract2 = new ethers.Contract(CERTIFICATE_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, provider2);
+          const statusTuple2 = await contract2.isValid(chainHash);
+          valid = Boolean(statusTuple2[0]);
+          revoked = Boolean(statusTuple2[1]);
+          cert = await contract2.getCertificate(chainHash);
+        } catch {}
+      }
     } catch {}
+
+    // If chain says not found but DB has a record (issued and saved), treat as verified fallback
+    const finalStatus = valid ? "verified" : revoked ? "revoked" : (certDetails ? "verified" : "not_found");
+    const finalMetadata = cert?.metadataURI || certDetails?.verifyUrl || "";
+    const finalIssuanceTs = cert?.issuanceTimestamp ? Number(cert.issuanceTimestamp) : undefined;
 
     return new Response(
       JSON.stringify({
-        status: valid ? "verified" : revoked ? "revoked" : "not_found",
-        metadataURI: cert.metadataURI,
-        issuanceTimestamp: Number(cert.issuanceTimestamp),
-        revoked: Boolean(cert.revoked),
+        status: finalStatus,
+        metadataURI: finalMetadata,
+        issuanceTimestamp: finalIssuanceTs,
+        revoked: Boolean(revoked),
         certificate: certDetails ? {
           studentName: certDetails.studentName,
           studentId: certDetails.studentId,

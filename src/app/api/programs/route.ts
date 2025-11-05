@@ -1,31 +1,71 @@
 import { NextRequest } from "next/server";
 import { collection } from "../../../lib/db";
+import { verifySession } from "../../../lib/auth";
 import { ObjectId } from "mongodb";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const token = req.cookies.get("token")?.value;
+  const session = token ? verifySession(token) : null;
+  if (!session) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+
   const { searchParams } = new URL(req.url);
-  const admin = (searchParams.get("admin") || "").toLowerCase();
-  if (!admin) return new Response(JSON.stringify({ error: "Missing admin" }), { status: 400 });
-  const col = await collection("programs");
-  const items = await col.find({ adminAddress: admin }).sort({ createdAt: -1 }).toArray();
+  const queryAdminId = (searchParams.get("adminId") || "").toLowerCase();
+
+  const adminsCol = await collection("admins");
+  const me = await adminsCol.findOne({ adminId: session.adminId });
+  if (!me) return new Response(JSON.stringify({ error: "Admin not found" }), { status: 404 });
+
+  const programsCol = await collection("programs");
+
+  // Super admin can view all or a specific admin via ?admin=
+  if (me.isSuperAdmin) {
+    const filter = queryAdminId ? { adminId: queryAdminId } : {};
+    const items = await programsCol.find(filter).sort({ createdAt: -1 }).toArray();
+    return new Response(JSON.stringify(items), { headers: { "content-type": "application/json" } });
+  }
+
+  // Regular admins can only view their own
+  const items = await programsCol
+    .find({ adminId: String(me.adminId).toLowerCase() })
+    .sort({ createdAt: -1 })
+    .toArray();
   return new Response(JSON.stringify(items), { headers: { "content-type": "application/json" } });
 }
 
 export async function POST(req: NextRequest) {
+  const token = req.cookies.get("token")?.value;
+  const session = token ? verifySession(token) : null;
+  if (!session) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+
   const body = await req.json();
-  const { adminAddress, adminId, name, code, startDate, endDate } = body;
-  if (!adminAddress || !adminId || !name || !code) return new Response(JSON.stringify({ error: "Missing fields" }), { status: 400 });
+  const { adminAddress, adminId, name, code, startDate, endDate, logoUrl, signatureUrl } = body;
+  if (!adminAddress || !adminId || !name || !code)
+    return new Response(JSON.stringify({ error: "Missing fields" }), { status: 400 });
+
+  const adminsCol = await collection("admins");
+  const me = await adminsCol.findOne({ adminId: session.adminId });
+  if (!me) return new Response(JSON.stringify({ error: "Admin not found" }), { status: 404 });
+
+  // Only super admin or the owner can create under an id
+  const lowerAddr = String(adminAddress).toLowerCase();
+  const lowerAdminId = String(adminId).toLowerCase();
+  if (!me.isSuperAdmin && lowerAdminId !== String(me.adminId).toLowerCase()) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+  }
+
   const col = await collection("programs");
   const now = new Date().toISOString();
   const doc = { 
-    adminAddress: adminAddress.toLowerCase(), 
-    adminId: adminId.toLowerCase(),
+    adminAddress: lowerAddr, 
+    adminId: lowerAdminId,
     name, 
     code, 
     startDate, 
     endDate, 
+    logoUrl: logoUrl || "",
+    signatureUrl: signatureUrl || "",
     isActive: true, 
     createdAt: now, 
     updatedAt: now 
@@ -35,10 +75,17 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  const token = req.cookies.get("token")?.value;
+  const session = token ? verifySession(token) : null;
+  if (!session) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+
   const body = await req.json();
   const { id, name, code, startDate, endDate, isActive } = body;
   if (!id) return new Response(JSON.stringify({ error: "Missing id" }), { status: 400 });
-  
+  const adminsCol = await collection("admins");
+  const me = await adminsCol.findOne({ adminId: session.adminId });
+  if (!me) return new Response(JSON.stringify({ error: "Admin not found" }), { status: 404 });
+
   const col = await collection("programs");
   const now = new Date().toISOString();
   
@@ -51,16 +98,38 @@ export async function PUT(req: NextRequest) {
   if (endDate !== undefined) updateFields.endDate = endDate;
   if (isActive !== undefined) updateFields.isActive = isActive;
   
+  // Authorization: only super or owner of program can update
+  const existing = await col.findOne({ _id: new ObjectId(id) });
+  if (!existing) return new Response(JSON.stringify({ error: "Not found" }), { status: 404 });
+  if (!me.isSuperAdmin && String(existing.adminId).toLowerCase() !== String(me.adminId).toLowerCase()) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+  }
+
   await col.updateOne({ _id: new ObjectId(id) }, { $set: updateFields });
   const updated = await col.findOne({ _id: new ObjectId(id) });
   return new Response(JSON.stringify(updated), { headers: { "content-type": "application/json" } });
 }
 
 export async function DELETE(req: NextRequest) {
+  const token = req.cookies.get("token")?.value;
+  const session = token ? verifySession(token) : null;
+  if (!session) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id) return new Response(JSON.stringify({ error: "Missing id" }), { status: 400 });
+
+  const adminsCol = await collection("admins");
+  const me = await adminsCol.findOne({ adminId: session.adminId });
+  if (!me) return new Response(JSON.stringify({ error: "Admin not found" }), { status: 404 });
+
   const col = await collection("programs");
+  const existing = await col.findOne({ _id: new ObjectId(id) });
+  if (!existing) return new Response(JSON.stringify({ error: "Not found" }), { status: 404 });
+  if (!me.isSuperAdmin && String(existing.adminId).toLowerCase() !== String(me.adminId).toLowerCase()) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+  }
+
   await col.deleteOne({ _id: new ObjectId(id) });
   return new Response(JSON.stringify({ ok: true }), { headers: { "content-type": "application/json" } });
 }

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import WalletConnection from "@/components/WalletConnection";
+import AppShell from "@/components/AppShell";
 
 type Program = {
   _id: string;
@@ -12,6 +13,8 @@ type Program = {
   startDate?: string;
   endDate?: string;
   isActive: boolean;
+  logoUrl?: string;
+  signatureUrl?: string;
 };
 
 export default function ProgramsPage() {
@@ -22,6 +25,8 @@ export default function ProgramsPage() {
   const [code, setCode] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [signatureUrl, setSignatureUrl] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -29,15 +34,15 @@ export default function ProgramsPage() {
       if (res.ok) {
         const data = await res.json();
         setAdmin(data);
-        if (data.walletAddress) {
-          load(data.walletAddress.toLowerCase());
+        if (data.adminId) {
+          load(data.adminId.toLowerCase());
         }
       }
     })();
   }, []);
 
   const load = async (addr: string) => {
-    const res = await fetch(`/api/programs?admin=${addr}`);
+    const res = await fetch(`/api/programs?adminId=${addr}`, { credentials: 'include' });
     const data = await res.json();
     setItems(data || []);
   };
@@ -48,17 +53,21 @@ export default function ProgramsPage() {
     const res = await fetch("/api/programs", {
       method: "POST",
       headers: { "content-type": "application/json" },
+      credentials: 'include',
       body: JSON.stringify({ 
         adminAddress: admin.walletAddress, 
         adminId: admin.adminId,
         name, 
         code, 
         startDate, 
-        endDate 
+        endDate,
+        logoUrl,
+        signatureUrl
       })
     });
     const data = await res.json();
     setName(""); setCode(""); setStartDate(""); setEndDate("");
+    setLogoUrl(""); setSignatureUrl("");
     if (data && data._id) load(admin.walletAddress.toLowerCase());
   };
 
@@ -66,155 +75,132 @@ export default function ProgramsPage() {
     await fetch("/api/programs", {
       method: "PUT",
       headers: { "content-type": "application/json" },
+      credentials: 'include',
       body: JSON.stringify({ id, isActive: !isActive })
     });
     if (admin?.walletAddress) load(admin.walletAddress.toLowerCase());
   };
 
   return (
-    <div style={{ 
-      minHeight: "100vh", 
-      background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-      padding: "24px"
-    }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{
-          background: "white",
-          borderRadius: "16px",
-          padding: "24px",
-          marginBottom: "24px",
-          boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-            <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700, color: "#1a202c" }}>Programs</h1>
-            <Link href="/admin/dashboard" style={{
-              padding: "8px 16px",
-              background: "#667eea",
-              color: "white",
-              textDecoration: "none",
-              borderRadius: "8px",
-              fontWeight: 600,
-              fontSize: "14px"
-            }}>← Back to Dashboard</Link>
-          </div>
+    <AppShell>
+      <div className="card p-6">
+        <WalletConnection />
+      </div>
 
-          <WalletConnection />
-        </div>
-
-        <div style={{
-          background: "white",
-          borderRadius: "16px",
-          padding: "24px",
-          marginBottom: "24px",
-          boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
-        }}>
-          <h2 style={{ margin: "0 0 20px 0", fontSize: "20px", fontWeight: 600 }}>Create New Program</h2>
-          <form onSubmit={addProgram} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
-            <input 
-              placeholder="Program Name" 
-              value={name} 
-              onChange={(e) => setName(e.target.value)} 
-              required
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #e2e8f0" }}
-            />
-            <input 
-              placeholder="Program Code" 
-              value={code} 
-              onChange={(e) => setCode(e.target.value)} 
-              required
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #e2e8f0" }}
-            />
-            <input 
-              placeholder="Start Date (YYYY-MM-DD)" 
-              type="date"
-              value={startDate} 
-              onChange={(e) => setStartDate(e.target.value)}
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #e2e8f0" }}
-            />
-            <input 
-              placeholder="End Date (YYYY-MM-DD)" 
-              type="date"
-              value={endDate} 
-              onChange={(e) => setEndDate(e.target.value)}
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #e2e8f0" }}
-            />
-            <button 
-              type="submit" 
-              disabled={!admin?.walletAddress}
-              style={{
-                padding: "10px 20px",
-                background: admin?.walletAddress ? "#667eea" : "#cbd5e0",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                fontWeight: 600,
-                cursor: admin?.walletAddress ? "pointer" : "not-allowed"
+      <div className="mt-6 card p-6">
+        <h2 className="text-base font-semibold">Create New Program</h2>
+        <form onSubmit={addProgram} className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+          <input
+            className="h-11 rounded-md border px-3 text-sm outline-none focus:ring-2"
+            placeholder="Program Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+          <input
+            className="h-11 rounded-md border px-3 text-sm outline-none focus:ring-2"
+            placeholder="Program Code"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            required
+          />
+          <input
+            className="h-11 rounded-md border px-3 text-sm outline-none focus:ring-2"
+            placeholder="Start Date"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <input
+            className="h-11 rounded-md border px-3 text-sm outline-none focus:ring-2"
+            placeholder="End Date"
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+          <div className="flex items-center gap-2">
+            <label className="text-xs">Logo</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                const b = await f.arrayBuffer();
+                const base64 = btoa(String.fromCharCode(...new Uint8Array(b)));
+                const up = await fetch('/api/ipfs/upload', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ fileBase64: base64, filename: f.name }) });
+                const d = await up.json();
+                if (up.ok) setLogoUrl(d.uri);
               }}
-            >
-              Add Program
-            </button>
-          </form>
-        </div>
-
-        <div style={{
-          background: "white",
-          borderRadius: "16px",
-          padding: "24px",
-          boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
-        }}>
-          <h2 style={{ margin: "0 0 20px 0", fontSize: "20px", fontWeight: 600 }}>Programs List</h2>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ borderBottom: "2px solid #e2e8f0" }}>
-                  <th align="left" style={{ padding: "12px", fontWeight: 600, color: "#1a202c" }}>Name</th>
-                  <th align="left" style={{ padding: "12px", fontWeight: 600, color: "#1a202c" }}>Code</th>
-                  <th align="left" style={{ padding: "12px", fontWeight: 600, color: "#1a202c" }}>Status</th>
-                  <th align="left" style={{ padding: "12px", fontWeight: 600, color: "#1a202c" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((p) => (
-                  <tr key={p._id} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                    <td style={{ padding: "12px" }}>{p.name}</td>
-                    <td style={{ padding: "12px" }}>{p.code}</td>
-                    <td style={{ padding: "12px" }}>
-                      <span style={{
-                        padding: "4px 12px",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        background: p.isActive ? "#d1fae5" : "#fee2e2",
-                        color: p.isActive ? "#065f46" : "#991b1b"
-                      }}>
-                        {p.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td style={{ padding: "12px" }}>
-                      <button 
-                        onClick={() => toggleActive(p._id, p.isActive)}
-                        style={{
-                          padding: "6px 12px",
-                          background: p.isActive ? "#ef4444" : "#10b981",
-                          color: "white",
-                          border: "none",
-                          borderRadius: "6px",
-                          cursor: "pointer",
-                          fontSize: "12px",
-                          fontWeight: 600
-                        }}
-                      >
-                        {p.isActive ? "Deactivate" : "Activate"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              className="h-11 w-full rounded-md border px-3 text-xs"
+            />
           </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs">Signature</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                const b = await f.arrayBuffer();
+                const base64 = btoa(String.fromCharCode(...new Uint8Array(b)));
+                const up = await fetch('/api/ipfs/upload', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ fileBase64: base64, filename: f.name }) });
+                const d = await up.json();
+                if (up.ok) setSignatureUrl(d.uri);
+              }}
+              className="h-11 w-full rounded-md border px-3 text-xs"
+            />
+          </div>
+          <button type="submit" disabled={!admin?.walletAddress} className="btn btn-primary h-11">
+            Add Program
+          </button>
+        </form>
+        {(logoUrl || signatureUrl) && (
+          <div className="mt-3 flex items-center gap-6">
+            {logoUrl && <img alt="logo" className="h-10 w-10 rounded-md border object-contain bg-white" src={(logoUrl.startsWith('ipfs://') ? (process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://ipfs.io/ipfs/') + logoUrl.replace('ipfs://','') : logoUrl)} />}
+            {signatureUrl && <img alt="signature" className="h-10 rounded-md border object-contain bg-white" src={(signatureUrl.startsWith('ipfs://') ? (process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://ipfs.io/ipfs/') + signatureUrl.replace('ipfs://','') : signatureUrl)} />}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6 card p-6">
+        <h2 className="text-base font-semibold">Programs List</h2>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="px-3 py-2 text-left font-semibold">Name</th>
+                <th className="px-3 py-2 text-left font-semibold">Code</th>
+                <th className="px-3 py-2 text-left font-semibold">Status</th>
+                <th className="px-3 py-2 text-left font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((p) => (
+                <tr key={p._id} className="border-b">
+                  <td className="px-3 py-2">{p.name}</td>
+                  <td className="px-3 py-2 font-mono">{p.code}</td>
+                  <td className="px-3 py-2">
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${p.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                      {p.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2">
+                    <button
+                      onClick={() => toggleActive(p._id, p.isActive)}
+                      className={`h-9 rounded-md px-3 text-xs font-semibold text-white ${p.isActive ? 'bg-red-600' : 'bg-emerald-600'}`}
+                    >
+                      {p.isActive ? 'Deactivate' : 'Activate'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }
 

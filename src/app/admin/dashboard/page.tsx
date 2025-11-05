@@ -3,11 +3,18 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import WalletConnection from "@/components/WalletConnection";
+import AppShell from "@/components/AppShell";
+import Sparkline from "@/components/Sparkline";
+import BarChart from "@/components/BarChart";
 
 export default function Dashboard() {
   const router = useRouter();
   const [admin, setAdmin] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
+  const [programsCount, setProgramsCount] = useState<number>(0);
+  const [adminsCount, setAdminsCount] = useState<number>(0);
+  const [dailyIssued, setDailyIssued] = useState<number[]>([]);
+  const [dailyRevoked, setDailyRevoked] = useState<number[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -23,9 +30,55 @@ export default function Dashboard() {
           setAdmin(data);
           if (data.walletAddress) {
             try {
-              const statsRes = await fetch(`/api/admin/stats?admin=${data.walletAddress}`, { credentials: "include" });
+              const statsUrl = data.isSuperAdmin
+                ? `/api/admin/stats`
+                : `/api/admin/stats?adminId=${data.adminId}`;
+              const statsRes = await fetch(statsUrl, { credentials: "include" });
               if (statsRes.ok) {
-                setStats(await statsRes.json());
+                const s = await statsRes.json();
+                setStats(s);
+                // derive last 7 days from recent
+                const days = 7;
+                const base = new Date();
+                base.setHours(0,0,0,0);
+                const byDayIssued: number[] = Array.from({ length: days }, () => 0);
+                const byDayRevoked: number[] = Array.from({ length: days }, () => 0);
+                if (Array.isArray(s.recent)) {
+                  s.recent.forEach((c: any) => {
+                    const d = new Date(c.createdAt);
+                    d.setHours(0,0,0,0);
+                    const diff = Math.floor((base.getTime() - d.getTime()) / (24*60*60*1000));
+                    if (diff >= 0 && diff < days) {
+                      byDayIssued[days - 1 - diff] += 1;
+                      if (c.revoked) byDayRevoked[days - 1 - diff] += 1;
+                    }
+                  });
+                }
+                setDailyIssued(byDayIssued);
+                setDailyRevoked(byDayRevoked);
+              }
+              // Load programs count
+              try {
+                const progsUrl = data.isSuperAdmin
+                  ? `/api/programs`
+                  : `/api/programs?adminId=${data.adminId}`;
+                const progs = await fetch(progsUrl, { credentials: "include" });
+                if (progs.ok) {
+                  const list = await progs.json();
+                  setProgramsCount(Array.isArray(list) ? list.length : 0);
+                }
+              } catch {}
+              // Load admins count (super admins might see all; otherwise just 1)
+              try {
+                const admins = await fetch(`/api/admin/admins`, { credentials: "include" });
+                if (admins.ok) {
+                  const list = await admins.json();
+                  setAdminsCount(Array.isArray(list) ? list.length : 1);
+                } else {
+                  setAdminsCount(1);
+                }
+              } catch {
+                setAdminsCount(1);
               }
             } catch {}
           }
@@ -42,174 +95,103 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ 
-      minHeight: "100vh", 
-      background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-      padding: "24px"
-    }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        {/* Header */}
-        <div style={{
-          background: "white",
-          borderRadius: "16px",
-          padding: "24px",
-          marginBottom: "24px",
-          boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700, color: "#1a202c" }}>Admin Dashboard</h1>
-              {admin && (
-                <p style={{ margin: "8px 0 0 0", color: "#718096" }}>
-                  {admin.adminId} {admin.isSuperAdmin && <span style={{ 
-                    background: "#667eea", 
-                    color: "white", 
-                    padding: "2px 8px", 
-                    borderRadius: "4px", 
-                    fontSize: "12px",
-                    marginLeft: "8px"
-                  }}>Super Admin</span>}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={logout}
-              style={{
-                padding: "10px 20px",
-                background: "#ef4444",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                fontWeight: 600,
-                cursor: "pointer",
-                fontSize: "14px"
-              }}
-            >
-              Logout
-            </button>
+    <AppShell>
+      <div className="card p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
+            {admin && (
+              <p className="mt-1 text-sm text-muted-foreground">
+                {admin.adminId}
+                {admin.isSuperAdmin && (
+                  <span className="ml-2 rounded-md bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">Super Admin</span>
+                )}
+              </p>
+            )}
           </div>
+          {/* Logout moved to Navbar via Privy */}
         </div>
-
-        {/* Wallet Connection */}
-        <WalletConnection />
-
-        {/* Stats Cards */}
-        {stats && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px", marginBottom: "24px" }}>
-            <div style={{
-              background: "white",
-              borderRadius: "12px",
-              padding: "24px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-            }}>
-              <div style={{ fontSize: "14px", color: "#718096", marginBottom: "8px" }}>Total Issued</div>
-              <div style={{ fontSize: "32px", fontWeight: 700, color: "#1a202c" }}>{stats.total || 0}</div>
-            </div>
-            <div style={{
-              background: "white",
-              borderRadius: "12px",
-              padding: "24px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-            }}>
-              <div style={{ fontSize: "14px", color: "#718096", marginBottom: "8px" }}>Revoked</div>
-              <div style={{ fontSize: "32px", fontWeight: 700, color: "#ef4444" }}>{stats.revoked || 0}</div>
-            </div>
-            <div style={{
-              background: "white",
-              borderRadius: "12px",
-              padding: "24px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-            }}>
-              <div style={{ fontSize: "14px", color: "#718096", marginBottom: "8px" }}>Active</div>
-              <div style={{ fontSize: "32px", fontWeight: 700, color: "#10b981" }}>{(stats.total || 0) - (stats.revoked || 0)}</div>
-            </div>
-          </div>
-        )}
-
-        {/* Navigation Cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginBottom: "24px" }}>
-          {admin?.isSuperAdmin && (
-            <Link href="/admin/admins" style={{ textDecoration: "none" }}>
-              <div style={{
-                background: "white",
-                borderRadius: "12px",
-                padding: "24px",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                cursor: "pointer",
-                transition: "transform 0.2s",
-                textAlign: "center"
-              }} onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-2px)"}
-              onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}>
-                <div style={{ fontSize: "24px", marginBottom: "8px" }}>👥</div>
-                <div style={{ fontWeight: 600, color: "#1a202c" }}>Manage Admins</div>
-              </div>
-            </Link>
-          )}
-          <Link href="/admin/programs" style={{ textDecoration: "none" }}>
-            <div style={{
-              background: "white",
-              borderRadius: "12px",
-              padding: "24px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-              cursor: "pointer",
-              transition: "transform 0.2s",
-              textAlign: "center"
-            }} onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-2px)"}
-            onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}>
-              <div style={{ fontSize: "24px", marginBottom: "8px" }}>📚</div>
-              <div style={{ fontWeight: 600, color: "#1a202c" }}>Programs</div>
-            </div>
-          </Link>
-          <Link href="/issue" style={{ textDecoration: "none" }}>
-            <div style={{
-              background: "white",
-              borderRadius: "12px",
-              padding: "24px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-              cursor: "pointer",
-              transition: "transform 0.2s",
-              textAlign: "center"
-            }} onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-2px)"}
-            onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}>
-              <div style={{ fontSize: "24px", marginBottom: "8px" }}>🎓</div>
-              <div style={{ fontWeight: 600, color: "#1a202c" }}>Issue Certificate</div>
-            </div>
-          </Link>
-        </div>
-
-        {/* Recent Certificates */}
-        {stats && stats.recent && stats.recent.length > 0 && (
-          <div style={{
-            background: "white",
-            borderRadius: "12px",
-            padding: "24px",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-          }}>
-            <h3 style={{ margin: "0 0 16px 0", fontSize: "20px", fontWeight: 600, color: "#1a202c" }}>Recent Certificates</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {stats.recent.map((c: any) => (
-                <div key={c._id} style={{
-                  padding: "12px",
-                  background: "#f7fafc",
-                  borderRadius: "8px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center"
-                }}>
-                  <div>
-                    <div style={{ fontWeight: 600, color: "#1a202c" }}>{c.studentName}</div>
-                    <div style={{ fontSize: "14px", color: "#718096" }}>ID: {c.studentId}</div>
-                  </div>
-                  <div style={{ fontSize: "14px", color: "#718096" }}>
-                    {new Date(c.createdAt).toLocaleString()}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
-    </div>
+
+      <div className="mt-6">
+        <WalletConnection />
+      </div>
+
+      {stats && (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="card p-5">
+            <div className="text-xs text-muted-foreground">Total Issued</div>
+            <div className="mt-1 text-3xl font-bold">{stats.total || 0}</div>
+          </div>
+          <div className="card p-5">
+            <div className="text-xs text-muted-foreground">Revoked</div>
+            <div className="mt-1 text-3xl font-bold text-red-600">{stats.revoked || 0}</div>
+          </div>
+          <div className="card p-5">
+            <div className="text-xs text-muted-foreground">Active</div>
+            <div className="mt-1 text-3xl font-bold text-emerald-600">{(stats.total || 0) - (stats.revoked || 0)}</div>
+          </div>
+          <div className="card p-5">
+            <div className="text-xs text-muted-foreground">Programs</div>
+            <div className="mt-1 text-3xl font-bold">{programsCount}</div>
+          </div>
+          <div className="card p-5">
+            <div className="text-xs text-muted-foreground">Admins</div>
+            <div className="mt-1 text-3xl font-bold">{adminsCount}</div>
+          </div>
+          <div className="card p-5">
+            <div className="text-xs text-muted-foreground">Issued (7 days)</div>
+            <div className="mt-1 text-3xl font-bold">{Array.isArray(stats.recent) ? stats.recent.filter((c: any) => Date.now() - new Date(c.createdAt).getTime() < 7*24*60*60*1000).length : 0}</div>
+          </div>
+          <div className="card p-5">
+            <div className="text-xs text-muted-foreground">Revocation Rate</div>
+            <div className="mt-1 text-3xl font-bold">{(stats.total ? Math.round(((stats.revoked || 0) / stats.total) * 100) : 0)}%</div>
+          </div>
+        </div>
+      )}
+
+      {(dailyIssued.length > 0 || dailyRevoked.length > 0) && (
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          <div className="card p-5">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="text-sm font-semibold">Issued — last 7 days</div>
+              <div className="text-xs text-muted-foreground">Total {dailyIssued.reduce((a,b)=>a+b,0)}</div>
+            </div>
+            <Sparkline data={dailyIssued} />
+            <div className="mt-3">
+              <BarChart data={dailyIssued} />
+            </div>
+          </div>
+          <div className="card p-5">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="text-sm font-semibold">Revoked — last 7 days</div>
+              <div className="text-xs text-muted-foreground">Total {dailyRevoked.reduce((a,b)=>a+b,0)}</div>
+            </div>
+            <Sparkline data={dailyRevoked} stroke="#BA1A1A" fill="rgba(186,26,26,0.18)" />
+            <div className="mt-3">
+              <BarChart data={dailyRevoked} barColor="#BA1A1A" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {stats && stats.recent && stats.recent.length > 0 && (
+        <div className="mt-6 card p-6">
+          <h3 className="text-lg font-semibold">Recent Certificates</h3>
+          <div className="mt-3 flex flex-col gap-2">
+            {stats.recent.map((c: any) => (
+              <div key={c._id} className="flex items-center justify-between rounded-md border bg-muted px-3 py-2">
+                <div>
+                  <div className="font-semibold">{c.studentName}</div>
+                  <div className="text-xs text-muted-foreground">ID: {c.studentId}</div>
+                </div>
+                <div className="text-xs text-muted-foreground">{new Date(c.createdAt).toLocaleString()}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </AppShell>
   );
 }
 

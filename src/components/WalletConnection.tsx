@@ -145,52 +145,12 @@ export default function WalletConnection({ showOnChainIssuer = false, showSwitch
     );
   }
 
-  if (!authenticated) {
-    return (
-      <div style={{ 
-        padding: "16px", 
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        borderRadius: "12px",
-        color: "white",
-        marginBottom: "20px"
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 600 }}>Connect Wallet</h3>
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.9 }}>
-              Connect your wallet to issue certificates on-chain
-            </p>
-          </div>
-          <button
-            onClick={handleConnect}
-            style={{
-              padding: "12px 24px",
-              background: "white",
-              color: "#667eea",
-              border: "none",
-              borderRadius: "8px",
-              fontWeight: 600,
-              cursor: "pointer",
-              fontSize: "14px"
-            }}
-          >
-            Connect Wallet
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div style={{ 
-      padding: "16px", 
-      background: "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)",
-      borderRadius: "12px",
-      color: "white",
-      marginBottom: "20px"
+    <div style={{
     }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        {/* <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 600 }}>Wallet Connected</h3>
             <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.9 }}>
@@ -220,7 +180,7 @@ export default function WalletConnection({ showOnChainIssuer = false, showSwitch
           >
             Disconnect
           </button>
-        </div>
+        </div> */}
         
         {(showOnChainIssuer || showSwitchChain) && (
           <div style={{

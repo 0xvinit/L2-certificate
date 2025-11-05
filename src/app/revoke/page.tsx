@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { ethers } from "ethers";
 import { CERTIFICATE_REGISTRY_ABI, CERTIFICATE_REGISTRY_ADDRESS } from "../../lib/contract";
+import AppShell from "@/components/AppShell";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 
 export default function RevokePage() {
@@ -76,32 +77,37 @@ export default function RevokePage() {
   };
 
   return (
-    <div style={{ maxWidth: 640, margin: "24px auto", padding: 16 }}>
-      <h1>Revoke Certificate</h1>
-      <div style={{ marginBottom: 12 }}>
-        {authenticated ? (
-          <button type="button" onClick={logout}>Logout</button>
-        ) : (
-          <button type="button" onClick={connect}>Login / Connect Wallet</button>
-        )}
-        {account && <div>Connected: {account.slice(0,6)}...{account.slice(-4)}</div>}
-        {chainId && <div>ChainId: {chainId}</div>}
-        {chainId !== null && chainId !== 80002 && (
-          <div style={{ marginTop: 8 }}>
-            <button type="button" onClick={switchToAmoy}>Switch to Polygon Amoy</button>
+    <AppShell>
+    <div className="max-w-xl py-2">
+      <div className="card p-6">
+        <h1 className="text-xl font-semibold">Revoke Certificate</h1>
+        <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+          {account && <div className="text-muted-foreground">Connected: {account.slice(0,6)}...{account.slice(-4)}</div>}
+          {chainId && <div className="text-muted-foreground">ChainId: {chainId}</div>}
+          {chainId !== null && chainId !== 80002 && (
+            <button type="button" onClick={switchToAmoy} className="btn btn-ghost h-9 px-4">Switch to Polygon Amoy</button>
+          )}
+        </div>
+        <form onSubmit={submit} className="mt-6 grid gap-3">
+          <input
+            className="h-11 rounded-lg border border-border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-color-ring font-mono"
+            placeholder="Hash (0x...)"
+            value={hash}
+            onChange={(e) => setHash(e.target.value)}
+            required
+          />
+          <button disabled={loading || !account} type="submit" className="btn btn-primary h-11">
+            {loading ? "Revoking..." : "Revoke"}
+          </button>
+        </form>
+        {txHash && (
+          <div className="mt-4 text-sm">
+            <b>Tx:</b> <span className="font-mono">{txHash}</span>
           </div>
         )}
       </div>
-      <form onSubmit={submit} style={{ display: "grid", gap: 12 }}>
-        <input placeholder="Hash (0x...)" value={hash} onChange={(e) => setHash(e.target.value)} required />
-        <button disabled={loading || !account} type="submit">{loading ? "Revoking..." : "Revoke"}</button>
-      </form>
-      {txHash && (
-        <div style={{ marginTop: 16 }}>
-          <b>Tx:</b> {txHash}
-        </div>
-      )}
     </div>
+    </AppShell>
   );
 }
 

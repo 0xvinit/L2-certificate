@@ -37,127 +37,42 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ 
-      minHeight: "100vh", 
-      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "24px"
-    }}>
-      <div style={{
-        background: "white",
-        borderRadius: "16px",
-        padding: "40px",
-        maxWidth: "450px",
-        width: "100%",
-        boxShadow: "0 10px 40px rgba(0,0,0,0.2)"
-      }}>
-        <h1 style={{ 
-          margin: "0 0 8px 0", 
-          fontSize: "28px", 
-          fontWeight: 700, 
-          color: "#1a202c",
-          textAlign: "center"
-        }}>
-          Admin Login
-        </h1>
-        <p style={{ 
-          margin: "0 0 32px 0", 
-          color: "#718096", 
-          textAlign: "center",
-          fontSize: "14px"
-        }}>
-          Enter your Admin ID and password
-        </p>
-        
-        <form onSubmit={submit} style={{ display: "grid", gap: "16px" }}>
-          <div>
-            <label style={{ 
-              display: "block", 
-              marginBottom: "8px", 
-              fontSize: "14px", 
-              fontWeight: 600,
-              color: "#1a202c"
-            }}>
-              Admin ID
-            </label>
-            <input 
-              placeholder="Enter Admin ID" 
-              value={adminId} 
-              onChange={(e) => setAdminId(e.target.value)} 
+    <div className="container max-w-md py-16">
+      <div className="card p-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold">Admin Login</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Enter your Admin ID and password</p>
+        </div>
+        <form onSubmit={submit} className="mt-8 grid gap-4">
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Admin ID</label>
+            <input
+              className="h-11 rounded-lg border border-border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-color-ring"
+              placeholder="Enter Admin ID"
+              value={adminId}
+              onChange={(e) => setAdminId(e.target.value)}
               disabled={loading}
               required
-              style={{ 
-                width: "100%",
-                padding: "12px 16px", 
-                borderRadius: "8px", 
-                border: "2px solid #e2e8f0",
-                fontSize: "14px",
-                color: "#1a202c",
-                boxSizing: "border-box"
-              }}
             />
           </div>
-          
-          <div>
-            <label style={{ 
-              display: "block", 
-              marginBottom: "8px", 
-              fontSize: "14px", 
-              fontWeight: 600,
-              color: "#1a202c"
-            }}>
-              Password
-            </label>
-            <input 
-              type="password" 
-              placeholder="Enter Password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Password</label>
+            <input
+              type="password"
+              className="h-11 rounded-lg border border-border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-color-ring"
+              placeholder="Enter Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
               required
-              style={{ 
-                width: "100%",
-                padding: "12px 16px", 
-                borderRadius: "8px", 
-                border: "2px solid #e2e8f0",
-                fontSize: "14px",
-                color: "#1a202c",
-                boxSizing: "border-box"
-              }}
             />
           </div>
-          
-          <button 
-            type="submit" 
-            disabled={loading}
-            style={{
-              padding: "14px 24px",
-              background: loading ? "#cbd5e0" : "#667eea",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              fontWeight: 600,
-              fontSize: "16px",
-              cursor: loading ? "not-allowed" : "pointer",
-              transition: "background 0.2s"
-            }}
-          >
+          <button type="submit" disabled={loading} className="btn btn-primary h-11">
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
-        
         {error && (
-          <div style={{ 
-            marginTop: "16px",
-            padding: "12px",
-            background: "#fee2e2",
-            color: "#991b1b",
-            borderRadius: "8px",
-            fontSize: "14px",
-            textAlign: "center"
-          }}>
+          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-center text-sm text-red-700">
             {error}
           </div>
         )}
