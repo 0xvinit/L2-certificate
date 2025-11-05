@@ -1,85 +1,53 @@
 @import "tailwindcss";
 
 :root {
-  --background: #FFFBDE; /* main light */
+  --background: #FFF; /* main light */
   --foreground: #000000;
-  --muted: #FFF6C8; /* soft tint of background */
-  --primary: #4682A9; /* buttons, emphasis */
-  --primary-foreground: #ffffff;
-  --accent: #91C8E4; /* UI highlights */
-  --ring: #749BC2; /* focus ring */
-  --border: #E7E0B8; /* subtle yet visible */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-accent: var(--accent);
-  --color-ring: var(--ring);
-  --color-border: var(--border);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-saira: var(--font-saira);
+  --font-poppins: var(--font-poppins);
+  --font-cairo: var(--font-cairo);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0e1218;
-    --foreground: #e8ecf2;
-    --muted: #131923;
-    --muted-foreground: #c8d7ea;
-    --primary: #91C8E4;
-    --primary-foreground: #0a0d12;
-    --accent: #749BC2;
-    --ring: #91C8E4;
-    --border: #1f2937;
+    --background: #FFF;
+    --foreground: #000;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
 html { background: var(--background); }
 body { min-height: 100vh; }
 
-/* App-wide primitives */
-.container {
-  @apply mx-auto px-6 sm:px-8 lg:px-10;
+/* Custom Animations */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.prose h1 { @apply text-4xl font-semibold tracking-tight; }
-.prose h2 { @apply text-2xl font-semibold tracking-tight; }
-.prose p { @apply text-base leading-7 text-muted-foreground; }
-
-.btn {
-  @apply inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2;
-}
-.btn-primary {
-  @apply bg-primary text-primary-foreground hover:opacity-90 focus:ring-[var(--color-ring)];
-}
-.btn-ghost {
-  @apply bg-transparent text-foreground hover:bg-muted/60;
+.animate-fadeInUp {
+  animation: fadeInUp 0.8s ease-out forwards;
 }
 
-.sidebar {
-  @apply w-64 shrink-0 border-r border-border/70;
-}
-.sidebar a {
-  @apply block rounded-md px-3 py-2 text-sm text-foreground/80 hover:bg-accent/30 hover:text-foreground transition-colors;
-}
-.sidebar a[aria-current="page"] {
-  @apply bg-accent/40 text-foreground font-medium;
+.animation-delay-200 {
+  animation-delay: 0.2s;
+  opacity: 0;
 }
 
-.card {
-  @apply rounded-lg border border-border bg-white/70 dark:bg-slate-900/30;
-}
 
-.nav-link { @apply text-sm font-medium text-foreground/80 hover:text-foreground; }
 

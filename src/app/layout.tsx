@@ -1,18 +1,26 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import {  Cairo, Poppins, Saira } from "next/font/google";
 import "./globals.css";
 import PrivyProvider from "../providers/PrivyProvider";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar/Navbar";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+
+const saira = Saira({
+  variable: "--font-saira",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const cairo = Cairo({
+  variable: "--font-cairo",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const poppins = Poppins({
+  variable: "--font-poppins",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"], 
 });
 
 export const metadata: Metadata = {
@@ -32,11 +40,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${cairo.variable} ${poppins.variable} ${saira.variable} antialiased`}>
         <PrivyProvider>
-          <Navbar />
+          {/* <Navbar />
           <main className="min-h-[calc(100vh-64px)]">{children}</main>
-          <Footer />
+          <Footer /> */}
+          <Navbar/>
+          {children}
         </PrivyProvider>
       </body>
     </html>
