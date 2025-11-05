@@ -12,15 +12,13 @@ export async function getDb(): Promise<Db> {
   if (db) return db;
   if (!client) {
     client = new MongoClient(uri);
-  }
-  if (!client.topology?.isConnected()) {
     await client.connect();
   }
   db = client.db(process.env.MONGODB_DB || "uni-certi");
   return db;
 }
 
-export function collection<T = any>(name: string): Promise<Collection<T>> {
+export function collection<T extends Document = Document>(name: string): Promise<Collection<T>> {
   return getDb().then(d => d.collection<T>(name));
 }
 

@@ -15,6 +15,7 @@ export default function WalletConnection({ showOnChainIssuer = false, showSwitch
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [chainId, setChainId] = useState<number | null>(null);
   const [onchainIssuer, setOnchainIssuer] = useState<string>("");
+  const [isPrivyWallet, setIsPrivyWallet] = useState<boolean>(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -61,6 +62,9 @@ export default function WalletConnection({ showOnChainIssuer = false, showSwitch
         const w = wallets[0];
         const addr = w.address;
         setWalletAddress(addr);
+        // Detect wallet type; only treat as Privy embedded if client reports so
+        const clientType = (w as any)?.walletClientType || (w as any)?.type || "";
+        setIsPrivyWallet(String(clientType).toLowerCase() === "privy");
         
         try {
           const eth = await w.getEthereumProvider();
@@ -70,12 +74,14 @@ export default function WalletConnection({ showOnChainIssuer = false, showSwitch
           setChainId(chain);
           
           // Get on-chain issuer if needed
-          if (showOnChainIssuer && CERTIFICATE_REGISTRY_ADDRESS) {
+          if (showOnChainIssuer && CERTIFICATE_REGISTRY_ADDRESS && (String(clientType).toLowerCase() === "privy")) {
             try {
               const contractRO = new ethers.Contract(CERTIFICATE_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, provider);
               const iss: string = await contractRO.issuer();
               setOnchainIssuer(iss);
             } catch {}
+          } else {
+            setOnchainIssuer("");
           }
           
           // Auto-save wallet connection (only if not already saved for this address)

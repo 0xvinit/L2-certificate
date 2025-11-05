@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
   const col = await collection("walletConnections");
   const connections = await col.find({ adminId: session.adminId }).sort({ lastActiveAt: -1 }).toArray();
   
-  return new Response(JSON.stringify(connections.map(c => ({
+  return new Response(JSON.stringify(connections.map((c: any) => ({
     _id: String(c._id),
     walletAddress: c.walletAddress,
     chainId: c.chainId,

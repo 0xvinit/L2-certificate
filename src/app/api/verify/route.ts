@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
         if (certDetails.programId) {
           try {
             const programCol = await collection("programs");
-            const program = await programCol.findOne({ _id: new ObjectId(certDetails.programId) });
+            const program = await programCol.findOne({ _id: new ObjectId(certDetails.programId) }) as any;
             if (program) {
               certDetails.programName = program.name;
               certDetails.programCode = program.code;
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
         if (certDetails.adminAddress) {
           try {
             const adminCol = await collection("admins");
-            const admin = await adminCol.findOne({ walletAddress: certDetails.adminAddress.toLowerCase() });
+            const admin = await adminCol.findOne({ walletAddress: certDetails.adminAddress.toLowerCase() }) as any;
             if (admin) {
               certDetails.university = admin.university || "";
             }

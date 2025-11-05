@@ -1,76 +1,77 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { usePrivy, useIdentityToken } from "@privy-io/react-auth";
 
 export default function LoginPage() {
-  const [adminId, setAdminId] = useState("");
-  const [password, setPassword] = useState("");
+  const { login, getAccessToken, authenticated, ready } = usePrivy();
+  const { identityToken } = useIdentityToken();
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const exchangedRef = useRef(false);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    
+  const signInWithGoogle = async () => {
     try {
-      const res = await fetch("/api/auth/login", { 
-        method: "POST", 
-        headers: { "content-type": "application/json" }, 
-        body: JSON.stringify({ adminId, password }),
-        credentials: "include"
-      });
-      
-      const data = await res.json();
-      
-      if (res.ok && data.ok) {
-        setTimeout(() => {
-          window.location.replace("/admin/dashboard");
-        }, 200);
-      } else {
-        setError(data.error || "Invalid credentials");
-        setLoading(false);
-      }
-    } catch (err: any) {
-      setError(err?.message || "Login failed");
+      setError("");
+      setLoading(true);
+      await login();
+      // After redirect back, the effect below will complete the exchange
+    } catch (e: any) {
+      setError(e?.message || "Login failed");
       setLoading(false);
     }
   };
+
+  // On return from Google (Privy adds privy_oauth_* params), complete the token exchange automatically
+  useEffect(() => {
+    (async () => {
+      if (!ready) return;
+      if (!authenticated) return;
+      if (exchangedRef.current) return;
+      try {
+        // Retry a few times in case access token isn't ready immediately
+        for (let i = 0; i < 12; i++) {
+          const token = identityToken || (await getAccessToken());
+          console.log("[login] attempt", i + 1, "authenticated=", authenticated, "idToken?", !!identityToken, identityToken ? `len=${identityToken.length}` : "", "sentTokenLen=", token ? token.length : 0);
+          if (identityToken) {
+            const res = await fetch("/api/auth/privy", {
+              method: "POST",
+              headers: { "privy-id-token": identityToken },
+              credentials: "include",
+            });
+            const text = await res.text();
+            let data: any = {};
+            try { data = JSON.parse(text); } catch {}
+            console.log("[login] /api/auth/privy ->", res.status, text);
+            if (res.ok && (data as any).ok) {
+              exchangedRef.current = true;
+              window.location.replace("/admin/dashboard");
+              return;
+            }
+            // If unauthorized or invalid token, wait and retry
+          }
+          await new Promise(r => setTimeout(r, 400));
+        }
+        setError("Could not complete sign-in. Please try again.");
+        setLoading(false);
+      } catch (e: any) {
+        setError(e?.message || "Login failed");
+        setLoading(false);
+      }
+    })();
+  }, [ready, authenticated, getAccessToken]);
 
   return (
     <div className="container max-w-md py-16">
       <div className="card p-8">
         <div className="text-center">
           <h1 className="text-2xl font-semibold">Admin Login</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Enter your Admin ID and password</p>
+          <p className="mt-2 text-sm text-muted-foreground">Sign in with Google (Privy)</p>
         </div>
-        <form onSubmit={submit} className="mt-8 grid gap-4">
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Admin ID</label>
-            <input
-              className="h-11 rounded-lg border border-border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-color-ring"
-              placeholder="Enter Admin ID"
-              value={adminId}
-              onChange={(e) => setAdminId(e.target.value)}
-              disabled={loading}
-              required
-            />
-          </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Password</label>
-            <input
-              type="password"
-              className="h-11 rounded-lg border border-border bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-color-ring"
-              placeholder="Enter Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-              required
-            />
-          </div>
-          <button type="submit" disabled={loading} className="btn btn-primary h-11">
-            {loading ? "Logging in..." : "Login"}
+        <div className="mt-6 grid gap-3">
+          <button onClick={signInWithGoogle} disabled={loading} className="btn btn-primary h-11">
+            {loading ? "Signing in..." : "Continue with Google"}
           </button>
-        </form>
+        </div>
         {error && (
           <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-center text-sm text-red-700">
             {error}

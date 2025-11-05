@@ -8,7 +8,7 @@ export default function PrivyProvider({ children }: { children: ReactNode }) {
     <P
       appId={appId}
       config={{
-        loginMethods: ["email", "wallet"],
+        loginMethods: ["google", "email", "wallet"],
         embeddedWallets: { createOnLogin: "users-without-wallets" },
       }}
     >

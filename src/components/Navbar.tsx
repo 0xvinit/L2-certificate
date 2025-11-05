@@ -1,91 +1,64 @@
-"use client";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { useEffect, useState } from "react";
+"use client"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { usePrivy, useWallets } from "@privy-io/react-auth"
+import { useEffect, useState } from "react"
+import { LogOut, Home } from "lucide-react"
 
-const links = [{ href: "/", label: "Home" }];
+const links = [{ href: "/", label: "Home" }]
 
 export default function Navbar() {
-  const pathname = usePathname();
-  const { authenticated, login, logout } = usePrivy();
-  const { wallets } = useWallets();
-  const addr = wallets?.[0]?.address || "";
-  const short = addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "";
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [hasAdminSession, setHasAdminSession] = useState(false);
+  const pathname = usePathname()
+  const { authenticated, login, logout } = usePrivy()
+  const { wallets } = useWallets()
+  const addr = wallets?.[0]?.address || ""
+  const short = addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : ""
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [hasAdminSession, setHasAdminSession] = useState(false)
 
   useEffect(() => {
-    (async () => {
+    ;(async () => {
       try {
-        const res = await fetch('/api/auth/me', { credentials: 'include' });
-        setHasAdminSession(res.ok);
+        const res = await fetch("/api/auth/me", { credentials: "include" })
+        setHasAdminSession(res.ok)
       } catch {
-        setHasAdminSession(false);
+        setHasAdminSession(false)
       }
-    })();
-  }, []);
+    })()
+  }, [])
 
   const handleAdminLogout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" })
     } catch {}
-    window.location.href = "/login";
-  };
-  return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-white/80 backdrop-blur dark:bg-slate-900/60">
-      <div className="container h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-accent/40 ring-1 ring-primary/30" />
-          <span className="text-base font-semibold tracking-tight">ChainGrad</span>
-        </Link>
-        {/* <nav className="hidden md:flex items-center gap-6">
-          {links.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={`nav-link ${pathname === l.href ? "text-foreground" : ""}`}
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav> */}
-        <div className="relative flex items-center gap-3">
-          {/* Wallet controls */}
-          {!authenticated ? (
-            <button onClick={login} className="btn btn-primary h-9 px-4">Connect Wallet</button>
-          ) : (
-            <>
-              {addr && (
-                <button
-                  type="button"
-                  onClick={() => setMenuOpen((v) => !v)}
-                  className="rounded-md border border-border bg-white px-2 py-1 text-xs font-mono text-foreground dark:bg-slate-900"
-                >
-                  {short}
-                </button>
-              )}
-              {menuOpen && (
-                <div className="absolute right-0 top-10 z-50 w-44 rounded-md border bg-white p-1 text-sm shadow-sm dark:bg-slate-900">
-                  <button
-                    className="w-full rounded px-2 py-1 text-left hover:bg-muted/60"
-                    onClick={() => { setMenuOpen(false); logout(); }}
-                  >
-                    Disconnect Wallet
-                  </button>
-                </div>
-              )}
-            </>
-          )}
+    window.location.href = "/login"
+  }
 
-          {/* Admin session logout shown only if admin session exists */}
+  return (
+    <header className="sticky top-0 z-40 w-full bg-gradient-to-b from-white/95 to-white/80 backdrop-blur-xl border-b border-slate-200/50 shadow-sm">
+      <div className="container max-w-7xl h-16 flex items-center justify-between px-6">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/30 flex items-center justify-center group-hover:shadow-blue-500/50 transition-all duration-300">
+            <Home className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-base font-bold tracking-tight text-slate-900">ChainGrad</span>
+            <span className="text-xs text-slate-500 font-medium">Certificate System</span>
+          </div>
+        </Link>
+
+        <div className="relative flex items-center gap-3">
           {hasAdminSession && (
-            <button onClick={handleAdminLogout} className="btn btn-ghost h-9 px-4">Logout</button>
+            <button
+              onClick={handleAdminLogout}
+              className="flex items-center gap-2 px-4 py-2 h-10 rounded-xl bg-gradient-to-br from-red-50 to-red-100/50 hover:from-red-100 hover:to-red-100 text-red-600 font-medium text-sm transition-all duration-300 hover:shadow-lg hover:shadow-red-500/20 border border-red-200/50 hover:border-red-300/50 active:scale-95"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
+            </button>
           )}
         </div>
       </div>
     </header>
-  );
+  )
 }
-
-

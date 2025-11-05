@@ -1,259 +1,210 @@
-"use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import WalletConnection from "@/components/WalletConnection";
+"use client"
+import { useEffect, useState } from "react"
+import type React from "react"
+
+import { useRouter } from "next/navigation"
+import { Trash2, Plus } from "lucide-react"
+import AppShell from "@/components/AppShell"
+
+type Allowed = {
+  _id: string;
+  email: string;
+  status: string;
+  isSuperAdmin?: boolean;
+  createdBy?: string;
+  createdAt?: string;
+};
 
 export default function AdminsPage() {
-  const router = useRouter();
-  const [admins, setAdmins] = useState<any[]>([]);
-  const [adminId, setAdminId] = useState("");
-  const [password, setPassword] = useState("");
-  const [university, setUniversity] = useState("");
-  const [loading, setLoading] = useState(false);
+  const router = useRouter()
+  const [admins, setAdmins] = useState<Allowed[]>([])
+  const [email, setEmail] = useState("")
+  const [status, setStatus] = useState("active")
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
   useEffect(() => {
-    load();
-  }, []);
+    load()
+  }, [])
 
   const load = async () => {
-    const res = await fetch("/api/admin/admins", { credentials: "include" });
-    if (res.status === 403) {
-      router.push("/login");
-      return;
+    setError("")
+    try {
+      const res = await fetch("/api/admin/allowlist", { credentials: "include" })
+      if (res.status === 401 || res.status === 403) {
+        router.push("/login")
+        return
+      }
+      const data = await res.json()
+      setAdmins(Array.isArray(data) ? data : [])
+    } catch (e: any) {
+      setError(e?.message || "Failed to load admins")
     }
-    const data = await res.json();
-    setAdmins(data || []);
-  };
+  }
 
   const createAdmin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault()
+    setLoading(true)
+    setError("")
     try {
-      const res = await fetch("/api/admin/admins", {
+      const res = await fetch("/api/admin/allowlist", {
         method: "POST",
         headers: { "content-type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ adminId, password, university })
-      });
-      if (res.ok) {
-        setAdminId("");
-        setPassword("");
-        setUniversity("");
-        await load();
-      } else {
-        const data = await res.json();
-        alert(data.error || "Failed to create admin");
+        body: JSON.stringify({ email, status, isSuperAdmin }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || "Failed to add email")
       }
+      setEmail("")
+      setStatus("active")
+      setIsSuperAdmin(false)
+      await load()
+    } catch (e: any) {
+      setError(e?.message || "Failed to add email")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const deleteAdmin = async (id: string, adminId: string) => {
-    if (!confirm(`Delete admin ${adminId}?`)) return;
-    const res = await fetch(`/api/admin/admins?id=${id}`, { 
-      method: "DELETE",
-      credentials: "include"
-    });
-    if (res.ok) await load();
-    else alert("Failed to delete");
-  };
+  const deleteAdmin = async (email: string) => {
+    if (!confirm(`Remove ${email} from admin allowlist?`)) return
+    try {
+      const res = await fetch(`/api/admin/allowlist?email=${encodeURIComponent(email)}`, {
+        method: "DELETE",
+        credentials: "include",
+      })
+      if (!res.ok) throw new Error("Failed to remove email")
+      await load()
+    } catch (e: any) {
+      alert(e?.message || "Failed to remove")
+    }
+  }
 
   return (
-    <div style={{ 
-      minHeight: "100vh", 
-      background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-      padding: "24px"
-    }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{
-          background: "white",
-          borderRadius: "16px",
-          padding: "24px",
-          marginBottom: "24px",
-          boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
-        }}>
-       
-
-          <WalletConnection />
+    <AppShell>
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900">Manage Admins</h1>
+          <p className="text-lg text-slate-600">Add emails that can sign in with Google (Privy) and access admin dashboard</p>
         </div>
 
-        <div style={{
-          background: "white",
-          borderRadius: "16px",
-          padding: "24px",
-          marginBottom: "24px",
-          boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
-        }}>
-          <h2 style={{ margin: "0 0 20px 0", fontSize: "20px", fontWeight: 600, color: "#1a202c" }}>Create New Admin</h2>
-          <form onSubmit={createAdmin} style={{ display: "grid", gap: "16px", maxWidth: "500px" }}>
+    
+
+        {/* Create Admin Section */}
+        <div className="rounded-2xl bg-gradient-to-br from-slate-50 via-white to-slate-50/40 p-8 transition-all duration-300 hover:shadow-lg border border-slate-100/40 backdrop-blur-sm">
+          <h2 className="text-2xl font-semibold text-slate-900 mb-6 flex items-center gap-2">
+            <Plus className="w-6 h-6 text-blue-600" />
+            Add Admin Email
+          </h2>
+
+          <form onSubmit={createAdmin} className="space-y-5 max-w-lg">
             <div>
-              <label style={{ 
-                display: "block", 
-                marginBottom: "8px", 
-                fontSize: "14px", 
-                fontWeight: 600,
-                color: "#1a202c"
-              }}>
-                Admin ID
-              </label>
-              <input 
-                placeholder="Enter Admin ID" 
-                value={adminId} 
-                onChange={(e) => setAdminId(e.target.value)} 
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Email Address</label>
+              <input
+                type="email"
+                placeholder="prof@example.edu"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
-                style={{ 
-                  width: "100%",
-                  padding: "12px 16px", 
-                  borderRadius: "8px", 
-                  border: "2px solid #e2e8f0",
-                  fontSize: "14px",
-                  color: "#1a202c",
-                  boxSizing: "border-box"
-                }}
+                className="w-full px-4 py-3 rounded-lg bg-slate-50/50 border border-slate-200/60 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm font-medium"
               />
             </div>
-            <div>
-              <label style={{ 
-                display: "block", 
-                marginBottom: "8px", 
-                fontSize: "14px", 
-                fontWeight: 600,
-                color: "#1a202c"
-              }}>
-                Password
+
+            <div className="flex items-center gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="px-4 py-3 rounded-lg bg-slate-50/50 border border-slate-200/60 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm font-medium"
+                >
+                  <option value="active">Active</option>
+                  <option value="pending">Pending</option>
+                </select>
+              </div>
+              <label className="flex items-center gap-2 mt-8">
+                <input
+                  type="checkbox"
+                  checked={isSuperAdmin}
+                  onChange={(e) => setIsSuperAdmin(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-semibold text-slate-700">Super Admin</span>
               </label>
-              <input 
-                type="password" 
-                placeholder="Enter Password" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                required
-                style={{ 
-                  width: "100%",
-                  padding: "12px 16px", 
-                  borderRadius: "8px", 
-                  border: "2px solid #e2e8f0",
-                  fontSize: "14px",
-                  color: "#1a202c",
-                  boxSizing: "border-box"
-                }}
-              />
             </div>
-            <div>
-              <label style={{ 
-                display: "block", 
-                marginBottom: "8px", 
-                fontSize: "14px", 
-                fontWeight: 600,
-                color: "#1a202c"
-              }}>
-                University
-              </label>
-              <input 
-                placeholder="Enter University Name" 
-                value={university} 
-                onChange={(e) => setUniversity(e.target.value)} 
-                required
-                style={{ 
-                  width: "100%",
-                  padding: "12px 16px", 
-                  borderRadius: "8px", 
-                  border: "2px solid #e2e8f0",
-                  fontSize: "14px",
-                  color: "#1a202c",
-                  boxSizing: "border-box"
-                }}
-              />
-            </div>
-            <button 
-              type="submit" 
+
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
               disabled={loading}
-              style={{
-                padding: "10px 20px",
-                background: loading ? "#cbd5e0" : "#667eea",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                fontWeight: 600,
-                cursor: loading ? "not-allowed" : "pointer"
-              }}
+              className={`w-full py-3 px-4 rounded-xl font-semibold text-white transition-all duration-200 transform ${
+                loading
+                  ? "bg-slate-300 cursor-not-allowed"
+                  : "bg-gradient-to-r from-blue-500 to-blue-600 hover:shadow-lg hover:scale-105 active:scale-95"
+              }`}
             >
-              {loading ? "Creating..." : "Create Admin"}
+              {loading ? "Adding..." : "Add Admin Email"}
             </button>
           </form>
         </div>
 
-        <div style={{
-          background: "white",
-          borderRadius: "16px",
-          padding: "24px",
-          boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
-        }}>
-          <h2 style={{ margin: "0 0 20px 0", fontSize: "20px", fontWeight: 600 }}>Admins List</h2>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        {/* Admins List Section */}
+        <div className="rounded-2xl bg-gradient-to-br from-slate-50 via-white to-slate-50/40 p-8 transition-all duration-300 hover:shadow-lg border border-slate-100/40 backdrop-blur-sm">
+          <h2 className="text-2xl font-semibold text-slate-900 mb-6">Admin Emails</h2>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
               <thead>
-                <tr style={{ borderBottom: "2px solid #e2e8f0" }}>
-                  <th align="left" style={{ padding: "12px", fontWeight: 600, color: "#1a202c" }}>Admin ID</th>
-                  <th align="left" style={{ padding: "12px", fontWeight: 600, color: "#1a202c" }}>University</th>
-                  <th align="left" style={{ padding: "12px", fontWeight: 600, color: "#1a202c" }}>Wallet</th>
-                  <th align="left" style={{ padding: "12px", fontWeight: 600, color: "#1a202c" }}>Role</th>
-                  <th align="left" style={{ padding: "12px", fontWeight: 600, color: "#1a202c" }}>Created By</th>
-                  <th align="left" style={{ padding: "12px", fontWeight: 600, color: "#1a202c" }}>Actions</th>
+                <tr className="border-b border-slate-200/60">
+                  <th className="text-left px-6 py-4 font-semibold text-slate-700 text-sm">Email</th>
+                  <th className="text-left px-6 py-4 font-semibold text-slate-700 text-sm">Status</th>
+                  <th className="text-left px-6 py-4 font-semibold text-slate-700 text-sm">Role</th>
+                  <th className="text-left px-6 py-4 font-semibold text-slate-700 text-sm">Created By</th>
+                  <th className="text-left px-6 py-4 font-semibold text-slate-700 text-sm">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {admins.map((a) => (
-                  <tr key={a._id} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                    <td style={{ padding: "12px", color: "#1a202c", fontWeight: 500 }}>{a.adminId}</td>
-                    <td style={{ padding: "12px", color: "#1a202c" }}>{a.university || "-"}</td>
-                    <td style={{ padding: "12px", fontFamily: "monospace", fontSize: "12px" }}>
-                      {a.walletAddress ? `${a.walletAddress.slice(0, 6)}...${a.walletAddress.slice(-4)}` : "-"}
+                  <tr key={a._id} className="border-b border-slate-100/40 hover:bg-blue-50/30 transition-colors">
+                    <td className="px-6 py-4 text-slate-900 font-medium text-sm font-mono">{a.email}</td>
+                    <td className="px-6 py-4 text-slate-600 text-sm">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                        a.status === "active" 
+                          ? "bg-emerald-100/60 text-emerald-700 border border-emerald-200/60"
+                          : "bg-amber-100/60 text-amber-700 border border-amber-200/60"
+                      }`}>
+                        {a.status}
+                      </span>
                     </td>
-                    <td style={{ padding: "12px" }}>
+                    <td className="px-6 py-4">
                       {a.isSuperAdmin ? (
-                        <span style={{
-                          padding: "4px 12px",
-                          borderRadius: "12px",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          background: "#667eea",
-                          color: "white"
-                        }}>
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-100 to-blue-50 text-blue-700 border border-blue-200/60">
                           Super Admin
                         </span>
                       ) : (
-                        <span style={{
-                          padding: "4px 12px",
-                          borderRadius: "12px",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          background: "#e2e8f0",
-                          color: "#1a202c"
-                        }}>
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100/60 text-slate-700 border border-slate-200/60">
                           Admin
                         </span>
                       )}
                     </td>
-                    <td style={{ padding: "12px", color: "#718096" }}>{a.createdBy || "-"}</td>
-                    <td style={{ padding: "12px" }}>
+                    <td className="px-6 py-4 text-slate-500 text-sm">{a.createdBy || "-"}</td>
+                    <td className="px-6 py-4">
                       {!a.isSuperAdmin && (
-                        <button 
-                          onClick={() => deleteAdmin(a._id, a.adminId)}
-                          style={{
-                            padding: "6px 12px",
-                            background: "#ef4444",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "6px",
-                            cursor: "pointer",
-                            fontSize: "12px",
-                            fontWeight: 600
-                          }}
+                        <button
+                          onClick={() => deleteAdmin(a.email)}
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50/60 text-red-600 hover:bg-red-100/80 transition-all duration-200 text-sm font-medium border border-red-200/40 hover:border-red-300/60 hover:shadow-sm"
                         >
-                          Delete
+                          <Trash2 className="w-4 h-4" />
+                          Remove
                         </button>
                       )}
                     </td>
@@ -262,9 +213,14 @@ export default function AdminsPage() {
               </tbody>
             </table>
           </div>
+
+          {admins.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-slate-500 text-sm">No admins yet. Add an email to get started.</p>
+            </div>
+          )}
         </div>
       </div>
-    </div>
-  );
+    </AppShell>
+  )
 }
-

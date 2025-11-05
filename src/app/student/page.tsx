@@ -5,6 +5,7 @@ import { sha256HexBytes } from "../../lib/sha256";
 import CertificateTemplate from "@/components/CertificateTemplate";
 import { generatePDFFromHTML, addQRCodeToElement } from "../../lib/pdfGenerator";
 import { createRoot } from "react-dom/client";
+import { Search, Download, ExternalLink, GraduationCap, Calendar, Hash, AlertCircle, FileText } from "lucide-react";
 
 type Cert = {
   _id: string;
@@ -31,11 +32,13 @@ export default function StudentCertificatesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [certs, setCerts] = useState<Cert[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const search = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
+    setHasSearched(true);
     try {
       const res = await fetch(`/api/certificates?studentId=${encodeURIComponent(studentId.trim())}`);
       const data = await res.json();
@@ -43,6 +46,7 @@ export default function StudentCertificatesPage() {
       setCerts(Array.isArray(data) ? data : []);
     } catch (err: any) {
       setError(err?.message || "Failed to load certificates");
+      setCerts([]);
     } finally {
       setLoading(false);
     }
@@ -191,45 +195,148 @@ export default function StudentCertificatesPage() {
 
   return (
     <AppShell>
-      <div className="card p-6">
-        <h1 className="text-xl font-semibold">Student Certificates</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Enter your student ID to view and download your certificates.</p>
-        <form onSubmit={search} className="mt-4 flex flex-wrap items-center gap-3">
-          <input
-            className="h-11 w-full max-w-xs rounded-md border px-3 text-sm outline-none focus:ring-2"
-            placeholder="Enter Student ID"
-            value={studentId}
-            onChange={(e) => setStudentId(e.target.value)}
-            required
-          />
-          <button disabled={loading} className="btn btn-primary h-11 px-5" type="submit">
-            {loading ? "Searching..." : "Search"}
-          </button>
-        </form>
-        {error && (
-          <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
-        )}
+      <div className="mb-12">
+        <div>
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900">Student Certificates</h1>
+          <p className="mt-2 text-slate-500">Enter your student ID to view and download your certificates</p>
+        </div>
       </div>
 
+      {/* Search Form */}
+      <div className="rounded-2xl bg-gradient-to-br from-slate-50 via-white to-slate-50/40 p-8 transition-all duration-300 hover:shadow-lg border border-slate-100/40 backdrop-blur-sm">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="rounded-full bg-blue-50 p-2.5">
+            <Search className="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">Search Certificates</h2>
+            <p className="text-sm text-slate-500 mt-0.5">Find your certificates by student ID</p>
+          </div>
+        </div>
+        
+        <form onSubmit={search} className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Student ID</label>
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  className="w-full h-12 pl-10 rounded-xl border border-slate-200/80 bg-white/50 px-4 text-sm outline-none transition-all focus:border-blue-300 focus:ring-4 focus:ring-blue-100/50"
+                  placeholder="Enter your Student ID"
+                  value={studentId}
+                  onChange={(e) => {
+                    setStudentId(e.target.value);
+                    if (hasSearched) setHasSearched(false);
+                  }}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <button
+                disabled={loading}
+                className="h-12 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-blue-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                type="submit"
+              >
+                <Search className="h-4 w-4" />
+                {loading ? "Searching..." : "Search"}
+              </button>
+            </div>
+          </div>
+          
+          {error && (
+            <div className="rounded-xl bg-gradient-to-br from-red-50 to-red-50/40 p-4 border border-red-200/60 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-red-900">Error</p>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+              </div>
+            </div>
+          )}
+        </form>
+      </div>
+
+      {/* Certificates List */}
       {certs.length > 0 && (
-        <div className="mt-6 card p-6">
-          <h2 className="text-base font-semibold">Results</h2>
-          <div className="mt-4 grid gap-3">
+        <div className="mt-8 rounded-2xl bg-gradient-to-br from-slate-50 via-white to-slate-50/40 p-8 transition-all duration-300 hover:shadow-lg border border-slate-100/40 backdrop-blur-sm">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-slate-900">Your Certificates</h2>
+            <p className="mt-1 text-sm text-slate-500">Found {certs.length} certificate{certs.length !== 1 ? 's' : ''}</p>
+          </div>
+          
+          <div className="grid gap-4">
             {certs.map((c) => (
-              <div key={c._id} className="flex flex-wrap items-center justify-between rounded-md border bg-muted px-3 py-3">
-                <div>
-                  <div className="font-semibold">{c.studentName}</div>
-                  <div className="text-xs text-muted-foreground">{c.programName} {c.programCode && `(${c.programCode})`}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">Issued: {c.date}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {c.verifyUrl && (
-                    <a className="btn btn-ghost h-9 px-3" href={c.verifyUrl} target="_blank" rel="noopener noreferrer">Verify</a>
-                  )}
-                  <button className="btn btn-primary h-9 px-3" onClick={() => downloadPdf(c)}>Download PDF</button>
+              <div
+                key={c._id}
+                className="rounded-xl border border-slate-200/60 bg-white/50 p-6 transition-all duration-200 hover:shadow-md hover:border-blue-200/60"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">{c.studentName}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <GraduationCap className="h-4 w-4 text-slate-500" />
+                        <span className="text-sm font-semibold text-slate-700">
+                          {c.programName}
+                          {c.programCode && (
+                            <span className="ml-2 text-xs font-normal text-slate-500">({c.programCode})</span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center gap-4 text-sm">
+                      {c.date && (
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-slate-400" />
+                          <span className="text-slate-600">
+                            <span className="font-semibold">Issued:</span> {c.date}
+                          </span>
+                        </div>
+                      )}
+                      {c.hash && (
+                        <div className="flex items-center gap-2">
+                          <Hash className="h-4 w-4 text-slate-400" />
+                          <code className="text-xs font-mono text-slate-500">
+                            {c.hash.slice(0, 10)}...{c.hash.slice(-8)}
+                          </code>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 sm:flex-col sm:items-stretch">
+                    {c.verifyUrl && (
+                      <a
+                        href={c.verifyUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-gradient-to-r from-blue-50 to-blue-50/40 text-blue-700 font-semibold transition-all duration-200 hover:shadow-md hover:from-blue-100 hover:to-blue-100/40 border border-blue-200/60"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Verify
+                      </a>
+                    )}
+                    <button
+                      onClick={() => downloadPdf(c)}
+                      className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-emerald-200/50"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download PDF
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {certs.length === 0 && !loading && hasSearched && (
+        <div className="mt-8 rounded-xl bg-gradient-to-br from-amber-50 to-amber-50/40 p-6 border border-amber-200/60 flex items-start gap-3">
+          <FileText className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-amber-900">No Certificates Found</p>
+            <p className="text-sm text-amber-800 mt-1">No certificates found for student ID: {studentId}</p>
           </div>
         </div>
       )}
