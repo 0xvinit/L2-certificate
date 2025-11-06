@@ -17,11 +17,11 @@ export async function middleware(req: NextRequest) {
       const loginUrl = new URL("/login", req.url);
       return NextResponse.redirect(loginUrl);
     }
-    
+
     console.log("Middleware - JWT_SECRET exists:", !!process.env.JWT_SECRET);
     const session = await verifySessionEdge(token);
     console.log("Middleware - Session:", session);
-    
+
     if (!session) {
       console.log("Middleware - Invalid session, redirecting to login");
       const loginUrl = new URL("/login", req.url);
