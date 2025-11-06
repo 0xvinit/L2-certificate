@@ -5,60 +5,60 @@ import Header from "../UI/Header";
 import { HiSparkles } from "react-icons/hi2";
 import {
   FaShieldAlt,
-  FaBolt,
-  FaDollarSign,
-  FaTrophy,
-  FaUserCheck,
-  FaGlobeAmericas,
+  FaFingerprint,
+  FaGlobe,
+  FaServer,
+  FaSearch,
+  FaUserShield,
 } from "react-icons/fa";
 
 const KeyBenefits = () => {
   const benefits = [
     {
       icon: FaShieldAlt,
-      title: "Prevents Forgery",
+      title: "Tamper-Proof Certificates",
       description:
-        "Blockchain immutability ensures certificates cannot be forged or tampered with — building absolute trust in credentials.",
+        "Each certificate is permanently stored on an L2 blockchain, secured with cryptographic hashing to prevent forgery or alteration.",
       iconColor: "text-[#28aeec]",
       delay: 0.2,
     },
     {
-      icon: FaBolt,
-      title: "Instant Verification",
+      icon: FaFingerprint,
+      title: "Unique Digital Fingerprint",
       description:
-        "Reduce verification time from weeks to seconds with QR code scanning or document upload — instant validation for employers.",
+        "Every certificate generates a unique blockchain hash — a digital fingerprint — ensuring authenticity and traceability at all times.",
       iconColor: "text-[#28aeec]",
       delay: 0.3,
     },
     {
-      icon: FaDollarSign,
-      title: "80% Cost Reduction",
+      icon: FaSearch,
+      title: "Seamless Verification",
       description:
-        "Cut operational costs dramatically with blockchain automation and Polygon's low gas fees — affordable at scale.",
+        "Anyone can verify a certificate by entering its hash on the portal — instantly confirming its validity from the blockchain record.",
       iconColor: "text-[#28aeec]",
       delay: 0.4,
     },
     {
-      icon: FaTrophy,
-      title: "Enhanced Credibility",
+      icon: FaServer,
+      title: "L2 Blockchain Efficiency",
       description:
-        "Boost institutional reputation with tamper-proof, globally verifiable certificates — showcase commitment to authenticity.",
+        "Built on a Layer-2 blockchain for scalability and cost efficiency — enabling large-scale certificate issuance with minimal gas fees.",
       iconColor: "text-[#28aeec]",
       delay: 0.5,
     },
     {
-      icon: FaUserCheck,
-      title: "True Ownership",
+      icon: FaUserShield,
+      title: "Admin Control Panel",
       description:
-        "Empower learners with permanent digital credentials they truly own — no dependency on institutions for verification.",
+        "Admins can easily create academic or training programs and issue certificates to students in a secure, decentralized environment.",
       iconColor: "text-[#28aeec]",
       delay: 0.6,
     },
     {
-      icon: FaGlobeAmericas,
-      title: "Global Accessibility",
+      icon: FaGlobe,
+      title: "Global Transparency",
       description:
-        "Share and verify credentials across borders effortlessly — accessible worldwide with W3C compliance and international standards.",
+        "Certificates can be verified anywhere in the world — ensuring trust, transparency, and credibility for institutions and learners alike.",
       iconColor: "text-[#28aeec]",
       delay: 0.7,
     },
@@ -91,7 +91,7 @@ const KeyBenefits = () => {
   };
 
   return (
-    <section className="py-20 bg-white relative overflow-hidden">
+    <section className="py-32 bg-white relative overflow-hidden">
       {/* Sky blue linear overlays */}
       {/* <div className="absolute top-[5%] right-[8%] w-[220px] h-[220px] bg-sky-400/35 blur-3xl opacity-100 rounded-full z-0" /> */}
       <div className="absolute bottom-[12%] left-[6%] w-[200px] h-[200px] bg-sky-500/50 blur-3xl opacity-100 rounded-full z-0" />
@@ -103,7 +103,7 @@ const KeyBenefits = () => {
         <Header
           icon={HiSparkles}
           label="Key Benefits"
-          title="Why Choose ChainGrad?"
+          title="Why Choose PramanaX?"
         />
 
         {/* Benefits Cards */}

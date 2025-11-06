@@ -10,29 +10,32 @@ const Technology = () => {
   const steps = [
     {
       icon: FaFileAlt,
-      title: "Create Hash",
-      description: "Document is converted into a unique cryptographic hash — a digital fingerprint that represents the entire content.",
+      title: "Generate Unique Hash",
+      description:
+        "Each issued certificate is converted into a unique cryptographic hash — a digital fingerprint that ensures authenticity and prevents duplication.",
       color: "from-[#28aeec] to-sky-400",
       delay: 0.3,
     },
     {
       icon: FaLink,
-      title: "Store on Blockchain",
-      description: "Hash is uploaded to the distributed public ledger (Polygon blockchain) — permanent and immutable storage.",
+      title: "Store on L2 Blockchain",
+      description:
+        "The generated hash is stored securely on a Layer-2 blockchain — providing immutable and transparent record-keeping at low cost and high speed.",
       color: "from-sky-400 to-blue-500",
       delay: 0.4,
     },
     {
       icon: FaCheckCircle,
-      title: "Verify Document",
-      description: "Verification recreates the hash and matches it with blockchain — any tampering makes the document unverifiable.",
+      title: "Verify Certificate",
+      description:
+        "Anyone can verify a certificate by entering its hash. The system checks the on-chain record, confirming whether the certificate is valid or tampered.",
       color: "from-blue-500 to-[#28aeec]",
       delay: 0.5,
     },
   ];
 
   return (
-    <section className="py-20 bg-white relative overflow-hidden">
+    <section className="py-32 bg-white relative overflow-hidden">
       {/* Background linear blobs */}
       <div className="absolute top-[20%] right-[5%] w-[280px] h-[280px] bg-sky-400/30 blur-3xl opacity-60 rounded-full z-0" />
       <div className="absolute bottom-[20%] left-[8%] w-[250px] h-[250px] bg-sky-500/40 blur-3xl opacity-60 rounded-full z-0" />
@@ -43,7 +46,7 @@ const Technology = () => {
         <Header
           icon={HiCpuChip}
           label="Technology"
-          title="Powered by Blockchain"
+          title="Blockchain-Powered Verification"
         />
 
         {/* Description */}
@@ -55,18 +58,23 @@ const Technology = () => {
           className="mb-16"
         >
           <p className="text-lg sm:text-xl lg:text-2xl text-gray-700 leading-relaxed font-poppins">
-            At the heart of ChainGrad is{" "}
+            This platform leverages{" "}
             <span className="text-[#28aeec] font-semibold">
-              Blockchain Technology
+              blockchain technology
             </span>{" "}
-            — a distributed public ledger that allows institutions to create tamper-proof
-            certificates by uploading cryptographic hashes on-chain. When any authority
-            wants to verify a document, they simply initiate verification. The system
-            recreates the document's hash and matches it with the hash stored on the
-            blockchain. If the hash matches, the document is confirmed{" "}
-            <span className="text-[#28aeec] font-semibold">authentic</span>. Any
-            addition, deletion, or editing makes the document{" "}
-            <span className="text-red-500 font-semibold">unverifiable</span>.
+            to bring transparency and trust to certificate management. Admins
+            can create academic or training programs and issue certificates upon
+            completion. Each certificate is converted into a{" "}
+            <span className="text-[#28aeec] font-semibold">
+              unique blockchain hash
+            </span>
+            , securely stored on an{" "}
+            <span className="font-semibold">L2 chain</span> to ensure cost
+            efficiency and immutability. Anyone can verify a certificate’s
+            authenticity simply by entering its hash — instantly confirming
+            whether it’s{" "}
+            <span className="text-[#28aeec] font-semibold">valid</span> or{" "}
+            <span className="text-red-500 font-semibold">tampered</span>.
           </p>
         </motion.div>
 
@@ -115,17 +123,16 @@ const Technology = () => {
                     </div>
                   </motion.div>
 
-                  {/* Animated Arrow (between cards, not after last card) */}
+                  {/* Animated Arrow */}
                   {index < steps.length - 1 && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.8 }}
                       whileInView={{ opacity: 1, scale: 1 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.6, delay: step.delay + 0.2 }}
-                      className="hidden lg:flex items-center justify-center px-6 relative"
+                      className="flex items-center justify-center px-6 relative"
                     >
                       <div className="relative">
-                        {/* Animated flowing particles */}
                         <motion.div
                           animate={{
                             x: [0, 50, 0],
@@ -152,9 +159,7 @@ const Technology = () => {
                           }}
                           className="absolute top-1/2 left-0 w-2 h-2 rounded-full bg-sky-400 blur-sm"
                         />
-
-                        {/* Main Arrow */}
-                        <IoArrowForward className="text-[#28aeec] text-5xl drop-shadow-lg relative z-10" />
+                        <IoArrowForward className="text-[#28aeec] text-5xl drop-shadow-lg relative z-10 rotate-90 lg:rotate-0" />
                       </div>
                     </motion.div>
                   )}
@@ -164,7 +169,7 @@ const Technology = () => {
           </div>
 
           {/* Mobile Arrows */}
-          <div className="lg:hidden flex flex-col items-center gap-8 mt-8">
+          {/* <div className="lg:hidden flex flex-col items-center gap-8 mt-8">
             {steps.slice(0, -1).map((_, index) => (
               <motion.div
                 key={index}
@@ -190,7 +195,7 @@ const Technology = () => {
                 <IoArrowForward className="text-[#28aeec] text-4xl drop-shadow-lg rotate-90" />
               </motion.div>
             ))}
-          </div>
+          </div> */}
         </div>
 
         {/* Bottom Info Box */}
@@ -209,21 +214,26 @@ const Technology = () => {
             </div>
             <div>
               <h4 className="text-2xl font-bold text-gray-900 mb-3 font-cairo uppercase">
-                Built on Polygon (Ethereum Layer-2)
+                Built on Layer-2 Blockchain Infrastructure
               </h4>
               <p className="text-gray-700 text-lg font-poppins leading-relaxed">
-                ChainGrad leverages{" "}
-                <span className="text-[#28aeec] font-semibold">Polygon blockchain</span> for
-                its infrastructure — ensuring{" "}
-                <span className="font-semibold">low transaction fees</span>,{" "}
-                <span className="font-semibold">high speed</span>, and{" "}
-                <span className="font-semibold">global accessibility</span>. The platform is
-                fully compliant with{" "}
+                The platform uses a{" "}
+                <span className="text-[#28aeec] font-semibold">Layer-2</span>{" "}
+                blockchain network to deliver{" "}
+                <span className="font-semibold">low-cost</span>,{" "}
+                <span className="font-semibold">fast</span>, and{" "}
+                <span className="font-semibold">secure</span> certificate
+                storage and verification. By leveraging decentralized
+                technology, it ensures{" "}
                 <span className="text-[#28aeec] font-semibold">
-                  W3C Verifiable Credentials
+                  transparency, immutability,
                 </span>{" "}
-                and can integrate with systems like DigiLocker and National Academic
-                Depository (NAD) for seamless verification.
+                and{" "}
+                <span className="text-[#28aeec] font-semibold">
+                  global accessibility
+                </span>
+                . This provides institutions, students, and verifiers with a
+                trusted and permanent record of achievements.
               </p>
             </div>
           </div>

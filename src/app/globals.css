@@ -11,6 +11,8 @@
   --font-saira: var(--font-saira);
   --font-poppins: var(--font-poppins);
   --font-cairo: var(--font-cairo);
+  --font-major-mono: var(--font-major-mono);
+  --breakpoint-xs: 400px;
 }
 
 @media (prefers-color-scheme: dark) {

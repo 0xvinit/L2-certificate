@@ -9,7 +9,7 @@ export default function Home() {
   return (
     <>
       {/* <section className="container max-w-4xl py-16">
-        <h1 className="text-4xl font-semibold tracking-tight">ChainGrad — L2-Verifiable Certificates</h1>
+        <h1 className="text-4xl font-semibold tracking-tight">PramanaX — L2-Verifiable Certificates</h1>
         <p className="mt-3 max-w-2xl text-base text-muted-foreground">
           On L2, low-fee, onchain proofs with verifiable storage. Issue, verify, and manage academic
           credentials with transparent, cryptographic guarantees.
@@ -34,10 +34,10 @@ export default function Home() {
         </div>
       </section> */}
       <HomePage />
-      <WhatIs/>
-      <KeyBenefits/>
-      <Technology/>
-      <WhyUs/>
+      <WhatIs />
+      <KeyBenefits />
+      <Technology />
+      <WhyUs />
     </>
   );
 }

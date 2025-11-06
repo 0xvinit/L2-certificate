@@ -13,9 +13,7 @@ export default function Footer() {
               <div className="h-8 w-8 rounded-lg bg-linear-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/20 flex items-center justify-center">
                 <span className="text-white font-bold text-sm">CG</span>
               </div>
-              <span className="text-sm font-bold text-slate-900">
-                ChainGrad
-              </span>
+              <span className="text-sm font-bold text-slate-900">PramanaX</span>
             </div>
             <p className="text-sm text-slate-600 leading-relaxed max-w-xs">
               Securely issue, verify, and manage digital certificates for your
@@ -116,7 +114,7 @@ export default function Footer() {
         {/* Bottom section */}
         <div className="py-6 flex items-center justify-between">
           <p className="text-xs text-slate-500">
-            © {new Date().getFullYear()} ChainGrad. All rights reserved.
+            © {new Date().getFullYear()} PramanaX. All rights reserved.
           </p>
           <div className="flex gap-6 text-xs">
             <Link

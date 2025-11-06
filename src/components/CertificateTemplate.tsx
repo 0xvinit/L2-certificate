@@ -308,9 +308,11 @@ export default function CertificateTemplate({
             paddingRight: "1.0in", // Extra right padding to avoid signature overlap
           }}
         >
-          has successfully completed the{" "}
-          <strong>{programName}</strong>
-          {programCode && ` (${programCode})`} on {date}, demonstrating dedication, skill, and commitment throughout the program. This certificate is securely recorded and verifiable on-chain through ChainGrad, ensuring authenticity and transparency in recognition.
+          has successfully completed the <strong>{programName}</strong>
+          {programCode && ` (${programCode})`} on {date}, demonstrating
+          dedication, skill, and commitment throughout the program. This
+          certificate is securely recorded and verifiable on-chain through
+          PramanaX, ensuring authenticity and transparency in recognition.
         </p>
       </div>
 
@@ -406,7 +408,7 @@ export default function CertificateTemplate({
             padding: "0.05in",
           }}
         />
-        
+
         <div
           style={{
             fontSize: "0.13in",
@@ -416,7 +418,7 @@ export default function CertificateTemplate({
         >
           Student ID: {studentId}
         </div>
-        
+
         {verifyUrl && (
           <div
             style={{
