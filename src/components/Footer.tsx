@@ -1,22 +1,25 @@
-import Link from "next/link"
-import { Home, FileText, RotateCcw, CheckCircle, Shield } from "lucide-react"
+import Link from "next/link";
+import { Home, FileText, RotateCcw, CheckCircle, Shield } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="w-full bg-gradient-to-b from-slate-50/80 to-white/60 backdrop-blur-sm border-t border-slate-200/50">
+    <footer className="w-full bg-linear-to-b from-slate-50/80 to-white/60 backdrop-blur-sm border-t border-slate-200/50">
       <div className="container max-w-7xl px-6">
         {/* Main content area */}
         <div className="py-12 grid gap-8 md:grid-cols-4">
           {/* Brand section */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/20 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-lg bg-linear-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/20 flex items-center justify-center">
                 <span className="text-white font-bold text-sm">CG</span>
               </div>
-              <span className="text-sm font-bold text-slate-900">ChainGrad</span>
+              <span className="text-sm font-bold text-slate-900">
+                ChainGrad
+              </span>
             </div>
             <p className="text-sm text-slate-600 leading-relaxed max-w-xs">
-              Securely issue, verify, and manage digital certificates for your institution with blockchain technology.
+              Securely issue, verify, and manage digital certificates for your
+              institution with blockchain technology.
             </p>
           </div>
 
@@ -91,14 +94,16 @@ export default function Footer() {
           {/* Newsletter section */}
           <div className="space-y-4">
             <h3 className="text-sm font-bold text-slate-900">Stay Updated</h3>
-            <p className="text-sm text-slate-600">Get the latest updates and news.</p>
+            <p className="text-sm text-slate-600">
+              Get the latest updates and news.
+            </p>
             <div className="flex flex-col gap-2">
               <input
                 type="email"
                 placeholder="Enter your email"
                 className="px-3 py-2 rounded-lg bg-white/60 border border-slate-200 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
-              <button className="px-3 py-2 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-blue-500/30 transition-all active:scale-95">
+              <button className="px-3 py-2 rounded-lg bg-linear-to-br from-blue-500 to-blue-600 text-white text-sm font-medium hover:shadow-lg hover:shadow-blue-500/30 transition-all active:scale-95">
                 Subscribe
               </button>
             </div>
@@ -110,20 +115,31 @@ export default function Footer() {
 
         {/* Bottom section */}
         <div className="py-6 flex items-center justify-between">
-          <p className="text-xs text-slate-500">© {new Date().getFullYear()} ChainGrad. All rights reserved.</p>
+          <p className="text-xs text-slate-500">
+            © {new Date().getFullYear()} ChainGrad. All rights reserved.
+          </p>
           <div className="flex gap-6 text-xs">
-            <Link href="#" className="text-slate-600 hover:text-slate-900 transition-colors">
+            <Link
+              href="#"
+              className="text-slate-600 hover:text-slate-900 transition-colors"
+            >
               Privacy Policy
             </Link>
-            <Link href="#" className="text-slate-600 hover:text-slate-900 transition-colors">
+            <Link
+              href="#"
+              className="text-slate-600 hover:text-slate-900 transition-colors"
+            >
               Terms of Service
             </Link>
-            <Link href="#" className="text-slate-600 hover:text-slate-900 transition-colors">
+            <Link
+              href="#"
+              className="text-slate-600 hover:text-slate-900 transition-colors"
+            >
               Contact
             </Link>
           </div>
         </div>
       </div>
     </footer>
-  )
+  );
 }

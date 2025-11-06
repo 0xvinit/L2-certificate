@@ -1,11 +1,21 @@
 "use client";
 import { useState } from "react";
 import { ethers } from "ethers";
-import { CERTIFICATE_REGISTRY_ABI, CERTIFICATE_REGISTRY_ADDRESS } from "../../lib/contract";
+import {
+  CERTIFICATE_REGISTRY_ABI,
+  CERTIFICATE_REGISTRY_ADDRESS,
+} from "../../lib/contract";
 import AppShell from "@/components/AppShell";
 import WalletConnection from "@/components/WalletConnection";
 import { useWallets } from "@privy-io/react-auth";
-import { RotateCcw, AlertCircle, CheckCircle2, Hash, ExternalLink, Search } from "lucide-react";
+import {
+  RotateCcw,
+  AlertCircle,
+  CheckCircle2,
+  Hash,
+  ExternalLink,
+  Search,
+} from "lucide-react";
 
 export default function RevokePage() {
   const [hash, setHash] = useState("");
@@ -50,13 +60,18 @@ export default function RevokePage() {
     setTxHash("");
     setError("");
     try {
-      if (!CERTIFICATE_REGISTRY_ADDRESS) throw new Error("Contract address missing");
+      if (!CERTIFICATE_REGISTRY_ADDRESS)
+        throw new Error("Contract address missing");
       const w = wallets[0];
       if (!w) throw new Error("No wallet connected");
       const eth = await w.getEthereumProvider();
       const provider = new ethers.BrowserProvider(eth as any);
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CERTIFICATE_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, signer);
+      const contract = new ethers.Contract(
+        CERTIFICATE_REGISTRY_ADDRESS,
+        CERTIFICATE_REGISTRY_ABI,
+        signer
+      );
       const tx = await contract.revoke(hash);
       const receipt = await tx.wait();
       setTxHash(receipt?.hash || "");
@@ -73,7 +88,7 @@ export default function RevokePage() {
 
   return (
     <AppShell>
-      {/* Background gradient overlays */}
+      {/* Background linear overlays */}
       <div className="absolute top-[10%] left-[5%] w-[300px] h-[300px] bg-sky-400/20 blur-3xl opacity-100 rounded-full z-0 pointer-events-none" />
       <div className="absolute bottom-[20%] right-[8%] w-[250px] h-[250px] bg-blue-400/25 blur-3xl opacity-100 rounded-full z-0 pointer-events-none" />
 
@@ -96,12 +111,16 @@ export default function RevokePage() {
       {/* Revoke Form */}
       <div className="rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-8 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 relative z-10">
         <div className="flex items-center gap-4 mb-8">
-          <div className="rounded-full bg-gradient-to-br from-red-500 to-red-600 p-4 shadow-lg">
+          <div className="rounded-full bg-linear-to-br from-red-500 to-red-600 p-4 shadow-lg">
             <RotateCcw className="h-7 w-7 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 font-cairo uppercase">Certificate Revocation</h2>
-            <p className="text-base text-gray-700 mt-1 font-poppins">Enter the certificate hash to revoke</p>
+            <h2 className="text-2xl font-bold text-gray-900 font-cairo uppercase">
+              Certificate Revocation
+            </h2>
+            <p className="text-base text-gray-700 mt-1 font-poppins">
+              Enter the certificate hash to revoke
+            </p>
           </div>
         </div>
 
@@ -126,7 +145,7 @@ export default function RevokePage() {
                 type="button"
                 onClick={handleVerifyHash}
                 disabled={loading || !hash.trim()}
-                className="h-14 px-6 rounded-xl bg-gradient-to-r from-[#28aeec] to-sky-400 text-white font-bold transition-all duration-300 hover:shadow-xl hover:shadow-sky-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-poppins uppercase hover:scale-105"
+                className="h-14 px-6 rounded-xl bg-linear-to-r from-[#28aeec] to-sky-400 text-white font-bold transition-all duration-300 hover:shadow-xl hover:shadow-sky-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-poppins uppercase hover:scale-105"
               >
                 <Search className="h-5 w-5" />
                 Verify
@@ -139,41 +158,61 @@ export default function RevokePage() {
             <div className="rounded-2xl border-2 border-amber-200/60 bg-amber-50/40 p-6">
               <div className="flex items-start gap-4 mb-5">
                 <div className="rounded-full bg-amber-100 p-2">
-                  <AlertCircle className="h-6 w-6 text-amber-600 flex-shrink-0" />
+                  <AlertCircle className="h-6 w-6 text-amber-600 shrink-0" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-amber-900 font-cairo text-lg uppercase">Certificate Found</p>
-                  <p className="text-base text-amber-800 mt-2 font-poppins">Review details below before revoking</p>
+                  <p className="font-bold text-amber-900 font-cairo text-lg uppercase">
+                    Certificate Found
+                  </p>
+                  <p className="text-base text-amber-800 mt-2 font-poppins">
+                    Review details below before revoking
+                  </p>
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 {certificateData.certificate.studentName && (
                   <div className="rounded-xl border-2 border-amber-200/60 bg-white/60 p-4">
-                    <div className="text-sm font-bold uppercase tracking-wide text-amber-700 mb-2 font-cairo">Student Name</div>
-                    <div className="text-base font-semibold text-gray-900 font-poppins">{certificateData.certificate.studentName}</div>
+                    <div className="text-sm font-bold uppercase tracking-wide text-amber-700 mb-2 font-cairo">
+                      Student Name
+                    </div>
+                    <div className="text-base font-semibold text-gray-900 font-poppins">
+                      {certificateData.certificate.studentName}
+                    </div>
                   </div>
                 )}
                 {certificateData.certificate.studentId && (
                   <div className="rounded-xl border-2 border-amber-200/60 bg-white/60 p-4">
-                    <div className="text-sm font-bold uppercase tracking-wide text-amber-700 mb-2 font-cairo">Student ID</div>
-                    <div className="text-base font-mono text-gray-900">{certificateData.certificate.studentId}</div>
+                    <div className="text-sm font-bold uppercase tracking-wide text-amber-700 mb-2 font-cairo">
+                      Student ID
+                    </div>
+                    <div className="text-base font-mono text-gray-900">
+                      {certificateData.certificate.studentId}
+                    </div>
                   </div>
                 )}
                 {certificateData.certificate.programName && (
                   <div className="rounded-xl border-2 border-amber-200/60 bg-white/60 p-4">
-                    <div className="text-sm font-bold uppercase tracking-wide text-amber-700 mb-2 font-cairo">Program</div>
+                    <div className="text-sm font-bold uppercase tracking-wide text-amber-700 mb-2 font-cairo">
+                      Program
+                    </div>
                     <div className="text-base font-semibold text-gray-900 font-poppins">
                       {certificateData.certificate.programName}
                       {certificateData.certificate.programCode && (
-                        <span className="ml-2 text-sm font-normal text-gray-600">({certificateData.certificate.programCode})</span>
+                        <span className="ml-2 text-sm font-normal text-gray-600">
+                          ({certificateData.certificate.programCode})
+                        </span>
                       )}
                     </div>
                   </div>
                 )}
                 {certificateData.status === "revoked" && (
                   <div className="rounded-xl border-2 border-red-200/60 bg-red-50/40 p-4">
-                    <div className="text-sm font-bold uppercase tracking-wide text-red-700 mb-2 font-cairo">Status</div>
-                    <div className="text-base font-semibold text-red-900 font-poppins">Already Revoked</div>
+                    <div className="text-sm font-bold uppercase tracking-wide text-red-700 mb-2 font-cairo">
+                      Status
+                    </div>
+                    <div className="text-base font-semibold text-red-900 font-poppins">
+                      Already Revoked
+                    </div>
                   </div>
                 )}
               </div>
@@ -182,35 +221,45 @@ export default function RevokePage() {
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-2xl bg-gradient-to-br from-red-50 to-red-50/40 p-6 border-2 border-red-200/60 flex items-start gap-4">
+            <div className="rounded-2xl bg-linear-to-br from-red-50 to-red-50/40 p-6 border-2 border-red-200/60 flex items-start gap-4">
               <div className="rounded-full bg-red-100 p-2">
-                <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0" />
+                <AlertCircle className="h-6 w-6 text-red-600 shrink-0" />
               </div>
               <div>
-                <p className="font-bold text-red-900 font-cairo text-lg uppercase">Error</p>
-                <p className="text-base text-red-700 mt-2 font-poppins">{error}</p>
+                <p className="font-bold text-red-900 font-cairo text-lg uppercase">
+                  Error
+                </p>
+                <p className="text-base text-red-700 mt-2 font-poppins">
+                  {error}
+                </p>
               </div>
             </div>
           )}
 
           {/* Success Message */}
           {txHash && (
-            <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-50/40 p-6 border-2 border-emerald-200/60">
+            <div className="rounded-2xl bg-linear-to-br from-emerald-50 to-emerald-50/40 p-6 border-2 border-emerald-200/60">
               <div className="flex items-start gap-4">
                 <div className="rounded-full bg-emerald-100 p-2">
-                  <CheckCircle2 className="h-7 w-7 text-emerald-600 flex-shrink-0" />
+                  <CheckCircle2 className="h-7 w-7 text-emerald-600 shrink-0" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-emerald-900 font-cairo text-xl uppercase">Certificate Revoked Successfully</p>
+                  <p className="font-bold text-emerald-900 font-cairo text-xl uppercase">
+                    Certificate Revoked Successfully
+                  </p>
                   <div className="mt-5 rounded-xl bg-white/60 border-2 border-emerald-100 p-4">
-                    <p className="text-sm text-gray-600 font-cairo font-bold uppercase mb-2">Transaction Hash</p>
+                    <p className="text-sm text-gray-600 font-cairo font-bold uppercase mb-2">
+                      Transaction Hash
+                    </p>
                     <div className="flex items-center gap-3">
-                      <code className="text-sm text-gray-900 font-mono break-all flex-1">{txHash}</code>
+                      <code className="text-sm text-gray-900 font-mono break-all flex-1">
+                        {txHash}
+                      </code>
                       <a
                         href={`https://amoy.polygonscan.com/tx/${txHash}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-shrink-0"
+                        className="shrink-0"
                       >
                         <ExternalLink className="h-5 w-5 text-[#28aeec] hover:text-sky-600" />
                       </a>
@@ -228,53 +277,77 @@ export default function RevokePage() {
                 <div className="rounded-full bg-red-100 p-3">
                   <RotateCcw className="h-6 w-6 text-red-600" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 font-cairo uppercase">Revoked Certificate Details</h3>
+                <h3 className="text-xl font-bold text-gray-900 font-cairo uppercase">
+                  Revoked Certificate Details
+                </h3>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2 mb-5">
                 {certificateData.certificate.studentName && (
                   <div className="rounded-xl border-2 border-sky-100 bg-white/70 p-4">
-                    <div className="text-sm font-bold uppercase tracking-wide text-gray-600 mb-2 font-cairo">Student Name</div>
-                    <div className="text-base font-semibold text-gray-900 font-poppins">{certificateData.certificate.studentName}</div>
+                    <div className="text-sm font-bold uppercase tracking-wide text-gray-600 mb-2 font-cairo">
+                      Student Name
+                    </div>
+                    <div className="text-base font-semibold text-gray-900 font-poppins">
+                      {certificateData.certificate.studentName}
+                    </div>
                   </div>
                 )}
                 {certificateData.certificate.studentId && (
                   <div className="rounded-xl border-2 border-sky-100 bg-white/70 p-4">
-                    <div className="text-sm font-bold uppercase tracking-wide text-gray-600 mb-2 font-cairo">Student ID</div>
-                    <div className="text-base font-mono text-gray-900">{certificateData.certificate.studentId}</div>
+                    <div className="text-sm font-bold uppercase tracking-wide text-gray-600 mb-2 font-cairo">
+                      Student ID
+                    </div>
+                    <div className="text-base font-mono text-gray-900">
+                      {certificateData.certificate.studentId}
+                    </div>
                   </div>
                 )}
                 {certificateData.certificate.university && (
                   <div className="rounded-xl border-2 border-sky-100 bg-white/70 p-4">
-                    <div className="text-sm font-bold uppercase tracking-wide text-gray-600 mb-2 font-cairo">University</div>
-                    <div className="text-base font-semibold text-gray-900 font-poppins">{certificateData.certificate.university}</div>
+                    <div className="text-sm font-bold uppercase tracking-wide text-gray-600 mb-2 font-cairo">
+                      University
+                    </div>
+                    <div className="text-base font-semibold text-gray-900 font-poppins">
+                      {certificateData.certificate.university}
+                    </div>
                   </div>
                 )}
                 {certificateData.certificate.programName && (
                   <div className="rounded-xl border-2 border-sky-100 bg-white/70 p-4">
-                    <div className="text-sm font-bold uppercase tracking-wide text-gray-600 mb-2 font-cairo">Program</div>
+                    <div className="text-sm font-bold uppercase tracking-wide text-gray-600 mb-2 font-cairo">
+                      Program
+                    </div>
                     <div className="text-base font-semibold text-gray-900 font-poppins">
                       {certificateData.certificate.programName}
                       {certificateData.certificate.programCode && (
-                        <span className="ml-2 text-sm font-normal text-gray-600">({certificateData.certificate.programCode})</span>
+                        <span className="ml-2 text-sm font-normal text-gray-600">
+                          ({certificateData.certificate.programCode})
+                        </span>
                       )}
                     </div>
                   </div>
                 )}
                 {certificateData.certificate.date && (
                   <div className="rounded-xl border-2 border-sky-100 bg-white/70 p-4">
-                    <div className="text-sm font-bold uppercase tracking-wide text-gray-600 mb-2 font-cairo">Issue Date</div>
-                    <div className="text-base font-semibold text-gray-900 font-poppins">{certificateData.certificate.date}</div>
+                    <div className="text-sm font-bold uppercase tracking-wide text-gray-600 mb-2 font-cairo">
+                      Issue Date
+                    </div>
+                    <div className="text-base font-semibold text-gray-900 font-poppins">
+                      {certificateData.certificate.date}
+                    </div>
                   </div>
                 )}
               </div>
 
-              <div className="rounded-xl border-2 border-sky-100 bg-gradient-to-br from-sky-50/50 to-white p-4">
+              <div className="rounded-xl border-2 border-sky-100 bg-linear-to-br from-sky-50/50 to-white p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="rounded-full bg-sky-100 p-2">
                     <Hash className="h-5 w-5 text-[#28aeec]" />
                   </div>
-                  <div className="text-base font-bold text-gray-900 font-cairo uppercase">Certificate Hash</div>
+                  <div className="text-base font-bold text-gray-900 font-cairo uppercase">
+                    Certificate Hash
+                  </div>
                 </div>
                 <code className="block font-mono text-sm break-all text-gray-900">
                   {hash || certificateData?.hash || "N/A"}
@@ -298,17 +371,24 @@ export default function RevokePage() {
 
           {/* Submit Button */}
           <button
-            disabled={loading || !wallets.length || !hash.trim() || certificateData?.status === "revoked"}
+            disabled={
+              loading ||
+              !wallets.length ||
+              !hash.trim() ||
+              certificateData?.status === "revoked"
+            }
             type="submit"
-            className="w-full h-14 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-bold transition-all duration-300 hover:shadow-xl hover:shadow-red-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-poppins text-lg uppercase hover:scale-105"
+            className="w-full h-14 rounded-xl bg-linear-to-r from-red-600 to-red-700 text-white font-bold transition-all duration-300 hover:shadow-xl hover:shadow-red-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-poppins text-lg uppercase hover:scale-105"
           >
             <RotateCcw className="h-6 w-6" />
-            {certificateData?.status === "revoked" ? "Already Revoked" : loading ? "Revoking..." : "Revoke Certificate"}
+            {certificateData?.status === "revoked"
+              ? "Already Revoked"
+              : loading
+              ? "Revoking..."
+              : "Revoke Certificate"}
           </button>
         </form>
       </div>
     </AppShell>
   );
 }
-
-

@@ -9,7 +9,7 @@ import { MdVerified } from "react-icons/md";
 const WhatIs = () => {
   return (
     <section className="py-20 bg-white relative overflow-hidden">
-      {/* Background gradient blobs */}
+      {/* Background linear blobs */}
       <div className="absolute top-[15%] left-[8%] w-[250px] h-[250px] bg-sky-400/30 blur-3xl opacity-60 rounded-full z-0" />
       <div className="absolute bottom-[15%] right-[10%] w-[200px] h-[200px] bg-sky-500/40 blur-3xl opacity-60 rounded-full z-0" />
 
@@ -30,8 +30,9 @@ const WhatIs = () => {
           className="mb-16 "
         >
           <p className="text-lg sm:text-xl lg:text-2xl text-gray-700 leading-relaxed font-poppins">
-            ChainGrad is a blockchain-powered certification platform that enables
-            institutes, universities, and training organizations to issue{" "}
+            ChainGrad is a blockchain-powered certification platform that
+            enables institutes, universities, and training organizations to
+            issue{" "}
             <span className="text-[#28aeec] font-semibold">
               tamper-proof, verifiable digital certificates
             </span>{" "}
@@ -73,7 +74,9 @@ const WhatIs = () => {
                   <li className="flex items-start gap-3">
                     <span className="text-red-500 text-xl mt-1">✗</span>
                     <p className="text-gray-700 text-lg font-poppins leading-relaxed">
-                      <strong className="text-gray-900">Certificate Forgery:</strong>{" "}
+                      <strong className="text-gray-900">
+                        Certificate Forgery:
+                      </strong>{" "}
                       Traditional digital certificates can be easily forged or
                       altered, leading to credential fraud.
                     </p>
@@ -81,7 +84,9 @@ const WhatIs = () => {
                   <li className="flex items-start gap-3">
                     <span className="text-red-500 text-xl mt-1">✗</span>
                     <p className="text-gray-700 text-lg font-poppins leading-relaxed">
-                      <strong className="text-gray-900">Slow Verification:</strong>{" "}
+                      <strong className="text-gray-900">
+                        Slow Verification:
+                      </strong>{" "}
                       Manual verification processes take weeks or even months,
                       delaying hiring and admissions.
                     </p>
@@ -89,17 +94,17 @@ const WhatIs = () => {
                   <li className="flex items-start gap-3">
                     <span className="text-red-500 text-xl mt-1">✗</span>
                     <p className="text-gray-700 text-lg font-poppins leading-relaxed">
-                      <strong className="text-gray-900">High Costs:</strong> Institutions
-                      spend significant resources on verification systems and
-                      anti-fraud measures.
+                      <strong className="text-gray-900">High Costs:</strong>{" "}
+                      Institutions spend significant resources on verification
+                      systems and anti-fraud measures.
                     </p>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-red-500 text-xl mt-1">✗</span>
                     <p className="text-gray-700 text-lg font-poppins leading-relaxed">
                       <strong className="text-gray-900">No Ownership:</strong>{" "}
-                      Graduates don't truly own their credentials — they depend on
-                      institutions to verify them.
+                      Graduates don't truly own their credentials — they depend
+                      on institutions to verify them.
                     </p>
                   </li>
                 </ul>
@@ -189,23 +194,30 @@ const WhatIs = () => {
                   <li className="flex items-start gap-3">
                     <span className="text-[#28aeec] text-xl mt-1">✓</span>
                     <p className="text-gray-700 text-lg font-poppins leading-relaxed">
-                      <strong className="text-gray-900">Tamper-Proof Certificates:</strong>{" "}
-                      Blockchain immutability ensures certificates cannot be forged
-                      or altered — anchored as cryptographic hashes on-chain.
+                      <strong className="text-gray-900">
+                        Tamper-Proof Certificates:
+                      </strong>{" "}
+                      Blockchain immutability ensures certificates cannot be
+                      forged or altered — anchored as cryptographic hashes
+                      on-chain.
                     </p>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-[#28aeec] text-xl mt-1">✓</span>
                     <p className="text-gray-700 text-lg font-poppins leading-relaxed">
-                      <strong className="text-gray-900">Instant Verification:</strong>{" "}
-                      Verify credentials in seconds through QR code scan or document
-                      upload — no manual checks required.
+                      <strong className="text-gray-900">
+                        Instant Verification:
+                      </strong>{" "}
+                      Verify credentials in seconds through QR code scan or
+                      document upload — no manual checks required.
                     </p>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-[#28aeec] text-xl mt-1">✓</span>
                     <p className="text-gray-700 text-lg font-poppins leading-relaxed">
-                      <strong className="text-gray-900">80% Cost Reduction:</strong>{" "}
+                      <strong className="text-gray-900">
+                        80% Cost Reduction:
+                      </strong>{" "}
                       Powered by Polygon Layer-2 for minimal gas fees, making
                       large-scale issuance affordable.
                     </p>

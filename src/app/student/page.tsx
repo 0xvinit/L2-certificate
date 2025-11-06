@@ -3,9 +3,21 @@ import { useState } from "react";
 import AppShell from "@/components/AppShell";
 import { sha256HexBytes } from "../../lib/sha256";
 import CertificateTemplate from "@/components/CertificateTemplate";
-import { generatePDFFromHTML, addQRCodeToElement } from "../../lib/pdfGenerator";
+import {
+  generatePDFFromHTML,
+  addQRCodeToElement,
+} from "../../lib/pdfGenerator";
 import { createRoot } from "react-dom/client";
-import { Search, Download, ExternalLink, GraduationCap, Calendar, Hash, AlertCircle, FileText } from "lucide-react";
+import {
+  Search,
+  Download,
+  ExternalLink,
+  GraduationCap,
+  Calendar,
+  Hash,
+  AlertCircle,
+  FileText,
+} from "lucide-react";
 
 type Cert = {
   _id: string;
@@ -40,9 +52,12 @@ export default function StudentCertificatesPage() {
     setLoading(true);
     setHasSearched(true);
     try {
-      const res = await fetch(`/api/certificates?studentId=${encodeURIComponent(studentId.trim())}`);
+      const res = await fetch(
+        `/api/certificates?studentId=${encodeURIComponent(studentId.trim())}`
+      );
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Failed to load certificates");
+      if (!res.ok)
+        throw new Error(data?.error || "Failed to load certificates");
       setCerts(Array.isArray(data) ? data : []);
     } catch (err: any) {
       setError(err?.message || "Failed to load certificates");
@@ -57,23 +72,27 @@ export default function StudentCertificatesPage() {
     if (c.pdfBase64) {
       try {
         // Clean base64 string (remove any whitespace/newlines)
-        const cleanBase64 = c.pdfBase64.trim().replace(/\s/g, '');
-        const pdfBytes = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0));
-        
+        const cleanBase64 = c.pdfBase64.trim().replace(/\s/g, "");
+        const pdfBytes = Uint8Array.from(atob(cleanBase64), (c) =>
+          c.charCodeAt(0)
+        );
+
         // Verify hash matches
         const computedHash = await sha256HexBytes(pdfBytes);
         console.log("Stored hash:", c.hash);
         console.log("Computed hash from PDF:", computedHash);
         console.log("PDF size:", pdfBytes.length, "bytes");
-        
+
         if (computedHash.toLowerCase() !== c.hash.toLowerCase()) {
-          console.warn("Hash mismatch between stored PDF and on-chain hash. This is expected for certificates where the on-chain hash was computed before adding the QR code.");
+          console.warn(
+            "Hash mismatch between stored PDF and on-chain hash. This is expected for certificates where the on-chain hash was computed before adding the QR code."
+          );
           console.warn("Expected hash:", c.hash);
           console.warn("Got hash:", computedHash);
         } else {
           console.log("✓ Hash verified! PDF matches original.");
         }
-        
+
         const blob = new Blob([pdfBytes], { type: "application/pdf" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -93,11 +112,16 @@ export default function StudentCertificatesPage() {
 
     // Fallback: regenerate PDF using HTML template (for old certificates without stored PDF)
     try {
-      const gw = (process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://ipfs.io/ipfs/').replace(/\/?$/, '/');
-      const toHttp = (uri: string) => uri.startsWith('ipfs://') ? (gw + uri.replace('ipfs://','')) : uri;
-      
+      const gw = (
+        process.env.NEXT_PUBLIC_IPFS_GATEWAY || "https://ipfs.io/ipfs/"
+      ).replace(/\/?$/, "/");
+      const toHttp = (uri: string) =>
+        uri.startsWith("ipfs://") ? gw + uri.replace("ipfs://", "") : uri;
+
       const logoUrlHttp = c.programLogoUrl ? toHttp(c.programLogoUrl) : "";
-      const signatureUrlHttp = c.programSignatureUrl ? toHttp(c.programSignatureUrl) : "";
+      const signatureUrlHttp = c.programSignatureUrl
+        ? toHttp(c.programSignatureUrl)
+        : "";
 
       // Create a temporary container for the certificate
       const tempContainer = document.createElement("div");
@@ -127,7 +151,9 @@ export default function StudentCertificatesPage() {
         );
         // Wait for template to render
         setTimeout(() => {
-          const certificateElement = tempContainer.querySelector("#certificate-container") as HTMLElement;
+          const certificateElement = tempContainer.querySelector(
+            "#certificate-container"
+          ) as HTMLElement;
           if (certificateElement) {
             resolve();
           } else {
@@ -136,8 +162,11 @@ export default function StudentCertificatesPage() {
         }, 1000);
       });
 
-      const certificateElement = tempContainer.querySelector("#certificate-container") as HTMLElement;
-      if (!certificateElement) throw new Error("Failed to render certificate template");
+      const certificateElement = tempContainer.querySelector(
+        "#certificate-container"
+      ) as HTMLElement;
+      if (!certificateElement)
+        throw new Error("Failed to render certificate template");
 
       // Wait for all images to load
       await new Promise<void>((resolve) => {
@@ -169,12 +198,14 @@ export default function StudentCertificatesPage() {
       // Add QR code if verify URL is available
       if (c.verifyUrl) {
         await addQRCodeToElement(certificateElement, c.verifyUrl);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
       // Generate PDF from HTML
-      const pdfBlob = await generatePDFFromHTML(certificateElement, { returnBlob: true }) as Blob;
-      
+      const pdfBlob = (await generatePDFFromHTML(certificateElement, {
+        returnBlob: true,
+      })) as Blob;
+
       // Clean up
       document.body.removeChild(tempContainer);
 
@@ -195,7 +226,7 @@ export default function StudentCertificatesPage() {
 
   return (
     <AppShell>
-      {/* Background gradient overlays */}
+      {/* Background linear overlays */}
       <div className="absolute top-[10%] left-[5%] w-[300px] h-[300px] bg-sky-400/20 blur-3xl opacity-100 rounded-full z-0 pointer-events-none" />
       <div className="absolute bottom-[20%] right-[8%] w-[250px] h-[250px] bg-blue-400/25 blur-3xl opacity-100 rounded-full z-0 pointer-events-none" />
 
@@ -205,7 +236,8 @@ export default function StudentCertificatesPage() {
             Student Certificates
           </h1>
           <p className="mt-4 text-lg text-gray-700 font-poppins max-w-2xl mx-auto">
-            Enter your student ID to view and download your blockchain certificates
+            Enter your student ID to view and download your blockchain
+            certificates
           </p>
         </div>
       </div>
@@ -213,18 +245,24 @@ export default function StudentCertificatesPage() {
       {/* Search Form */}
       <div className="rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-8 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 relative z-10">
         <div className="flex items-center gap-4 mb-8">
-          <div className="rounded-full bg-gradient-to-br from-[#28aeec] to-sky-400 p-4 shadow-lg">
+          <div className="rounded-full bg-linear-to-br from-[#28aeec] to-sky-400 p-4 shadow-lg">
             <Search className="h-7 w-7 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 font-cairo uppercase">Search Certificates</h2>
-            <p className="text-base text-gray-700 mt-1 font-poppins">Find your certificates by student ID</p>
+            <h2 className="text-2xl font-bold text-gray-900 font-cairo uppercase">
+              Search Certificates
+            </h2>
+            <p className="text-base text-gray-700 mt-1 font-poppins">
+              Find your certificates by student ID
+            </p>
           </div>
         </div>
 
         <form onSubmit={search} className="space-y-5">
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2 font-cairo uppercase">Student ID</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2 font-cairo uppercase">
+              Student ID
+            </label>
             <div className="flex gap-4">
               <div className="relative flex-1">
                 <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -242,7 +280,7 @@ export default function StudentCertificatesPage() {
               </div>
               <button
                 disabled={loading}
-                className="h-14 px-8 rounded-xl bg-gradient-to-r from-[#28aeec] to-sky-400 text-white font-bold transition-all duration-300 hover:shadow-xl hover:shadow-sky-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-poppins text-lg uppercase hover:scale-105"
+                className="h-14 px-8 rounded-xl bg-linear-to-r from-[#28aeec] to-sky-400 text-white font-bold transition-all duration-300 hover:shadow-xl hover:shadow-sky-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-poppins text-lg uppercase hover:scale-105"
                 type="submit"
               >
                 <Search className="h-6 w-6" />
@@ -252,13 +290,17 @@ export default function StudentCertificatesPage() {
           </div>
 
           {error && (
-            <div className="rounded-2xl bg-gradient-to-br from-red-50 to-red-50/40 p-6 border-2 border-red-200/60 flex items-start gap-4">
+            <div className="rounded-2xl bg-linear-to-br from-red-50 to-red-50/40 p-6 border-2 border-red-200/60 flex items-start gap-4">
               <div className="rounded-full bg-red-100 p-2">
-                <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0" />
+                <AlertCircle className="h-6 w-6 text-red-600 shrink-0" />
               </div>
               <div>
-                <p className="font-bold text-red-900 font-cairo text-lg uppercase">Error</p>
-                <p className="text-base text-red-700 mt-2 font-poppins">{error}</p>
+                <p className="font-bold text-red-900 font-cairo text-lg uppercase">
+                  Error
+                </p>
+                <p className="text-base text-red-700 mt-2 font-poppins">
+                  {error}
+                </p>
               </div>
             </div>
           )}
@@ -269,8 +311,12 @@ export default function StudentCertificatesPage() {
       {certs.length > 0 && (
         <div className="mt-8 rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-8 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 relative z-10">
           <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 font-cairo uppercase">Your Certificates</h2>
-            <p className="mt-2 text-base text-gray-700 font-poppins">Found {certs.length} certificate{certs.length !== 1 ? 's' : ''}</p>
+            <h2 className="text-3xl font-bold text-gray-900 font-cairo uppercase">
+              Your Certificates
+            </h2>
+            <p className="mt-2 text-base text-gray-700 font-poppins">
+              Found {certs.length} certificate{certs.length !== 1 ? "s" : ""}
+            </p>
           </div>
 
           <div className="grid gap-6">
@@ -282,7 +328,9 @@ export default function StudentCertificatesPage() {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                   <div className="flex-1 space-y-4">
                     <div>
-                      <h3 className="text-2xl font-bold text-gray-900 font-cairo uppercase">{c.studentName}</h3>
+                      <h3 className="text-2xl font-bold text-gray-900 font-cairo uppercase">
+                        {c.studentName}
+                      </h3>
                       <div className="flex items-center gap-3 mt-2">
                         <div className="rounded-full bg-sky-100 p-2">
                           <GraduationCap className="h-5 w-5 text-[#28aeec]" />
@@ -290,7 +338,9 @@ export default function StudentCertificatesPage() {
                         <span className="text-base font-semibold text-gray-800 font-poppins">
                           {c.programName}
                           {c.programCode && (
-                            <span className="ml-2 text-sm font-normal text-gray-600">({c.programCode})</span>
+                            <span className="ml-2 text-sm font-normal text-gray-600">
+                              ({c.programCode})
+                            </span>
                           )}
                         </span>
                       </div>
@@ -301,7 +351,8 @@ export default function StudentCertificatesPage() {
                         <div className="flex items-center gap-2">
                           <Calendar className="h-5 w-5 text-gray-500" />
                           <span className="text-sm text-gray-700 font-poppins">
-                            <span className="font-semibold">Issued:</span> {c.date}
+                            <span className="font-semibold">Issued:</span>{" "}
+                            {c.date}
                           </span>
                         </div>
                       )}
@@ -322,7 +373,7 @@ export default function StudentCertificatesPage() {
                         href={c.verifyUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-xl bg-gradient-to-r from-sky-50 to-sky-100 text-[#28aeec] font-bold transition-all duration-300 hover:shadow-lg hover:shadow-sky-200/50 border-2 border-sky-200 hover:border-[#28aeec] font-poppins uppercase"
+                        className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-xl bg-linear-to-r from-sky-50 to-sky-100 text-[#28aeec] font-bold transition-all duration-300 hover:shadow-lg hover:shadow-sky-200/50 border-2 border-sky-200 hover:border-[#28aeec] font-poppins uppercase"
                       >
                         <ExternalLink className="h-5 w-5" />
                         Verify
@@ -330,7 +381,7 @@ export default function StudentCertificatesPage() {
                     )}
                     <button
                       onClick={() => downloadPdf(c)}
-                      className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-bold transition-all duration-300 hover:shadow-xl hover:shadow-emerald-200/50 font-poppins uppercase hover:scale-105"
+                      className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-xl bg-linear-to-r from-emerald-600 to-emerald-700 text-white font-bold transition-all duration-300 hover:shadow-xl hover:shadow-emerald-200/50 font-poppins uppercase hover:scale-105"
                     >
                       <Download className="h-5 w-5" />
                       Download PDF
@@ -344,18 +395,20 @@ export default function StudentCertificatesPage() {
       )}
 
       {certs.length === 0 && !loading && hasSearched && (
-        <div className="mt-8 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-50/40 p-6 border-2 border-amber-200/60 flex items-start gap-4 relative z-10">
+        <div className="mt-8 rounded-2xl bg-linear-to-br from-amber-50 to-amber-50/40 p-6 border-2 border-amber-200/60 flex items-start gap-4 relative z-10">
           <div className="rounded-full bg-amber-100 p-2">
-            <FileText className="h-6 w-6 text-amber-600 flex-shrink-0" />
+            <FileText className="h-6 w-6 text-amber-600 shrink-0" />
           </div>
           <div>
-            <p className="font-bold text-amber-900 font-cairo text-lg uppercase">No Certificates Found</p>
-            <p className="text-base text-amber-800 mt-2 font-poppins">No certificates found for student ID: {studentId}</p>
+            <p className="font-bold text-amber-900 font-cairo text-lg uppercase">
+              No Certificates Found
+            </p>
+            <p className="text-base text-amber-800 mt-2 font-poppins">
+              No certificates found for student ID: {studentId}
+            </p>
           </div>
         </div>
       )}
     </AppShell>
   );
 }
-
-

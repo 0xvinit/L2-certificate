@@ -3,7 +3,14 @@ import React from "react";
 import { motion, Variants } from "framer-motion";
 import Header from "../UI/Header";
 import { HiSparkles } from "react-icons/hi2";
-import { FaShieldAlt, FaBolt, FaDollarSign, FaTrophy, FaUserCheck, FaGlobeAmericas } from "react-icons/fa";
+import {
+  FaShieldAlt,
+  FaBolt,
+  FaDollarSign,
+  FaTrophy,
+  FaUserCheck,
+  FaGlobeAmericas,
+} from "react-icons/fa";
 
 const KeyBenefits = () => {
   const benefits = [
@@ -85,7 +92,7 @@ const KeyBenefits = () => {
 
   return (
     <section className="py-20 bg-white relative overflow-hidden">
-      {/* Sky blue gradient overlays */}
+      {/* Sky blue linear overlays */}
       {/* <div className="absolute top-[5%] right-[8%] w-[220px] h-[220px] bg-sky-400/35 blur-3xl opacity-100 rounded-full z-0" /> */}
       <div className="absolute bottom-[12%] left-[6%] w-[200px] h-[200px] bg-sky-500/50 blur-3xl opacity-100 rounded-full z-0" />
       <div className="absolute top-[40%] left-[10%] w-[150px] h-[150px] bg-sky-200/40 blur-3xl opacity-100 rounded-full z-0" />
