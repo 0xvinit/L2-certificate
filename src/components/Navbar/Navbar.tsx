@@ -43,6 +43,14 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Clear session cookie when user becomes unauthenticated
+  useEffect(() => {
+    if (ready && !authenticated) {
+      // User logged out - clear session cookie
+      fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
+    }
+  }, [ready, authenticated]);
+
   const toggleDropdown = () => {
     setDropdownOpen(!dropdownOpen);
   };
@@ -51,9 +59,20 @@ const Navbar = () => {
     login();
   };
 
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
+    try {
+      // First clear the session cookie
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    } catch (error) {
+      console.error("Error clearing session:", error);
+    }
+    // Then logout from Privy
     logout();
     setDropdownOpen(false);
+    // Redirect to home page after logout
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
   };
 
   const copyAddress = () => {

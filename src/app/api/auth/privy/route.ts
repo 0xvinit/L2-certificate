@@ -96,7 +96,11 @@ export async function POST(req: NextRequest) {
     console.log("[privy] allowlist match:", !!allowed, allowed ? { email: allowed.email, isSuperAdmin: !!allowed.isSuperAdmin, status: allowed.status } : null);
 
     if (!allowed) {
-      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+      return NextResponse.json({ 
+        error: "Not authorized", 
+        message: "Your email is not in the admin allowlist. You can access Student and Verify pages only.",
+        notInAllowlist: true 
+      }, { status: 403 });
     }
 
     // Create app session cookie (role-based)

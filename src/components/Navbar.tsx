@@ -27,10 +27,23 @@ export default function Navbar() {
     })()
   }, [])
 
+  // Clear session cookie when user becomes unauthenticated
+  useEffect(() => {
+    if (!authenticated && hasAdminSession) {
+      // User logged out - clear session cookie
+      fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {})
+      setHasAdminSession(false)
+    }
+  }, [authenticated, hasAdminSession])
+
   const handleAdminLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST", credentials: "include" })
     } catch {}
+    // Also logout from Privy if authenticated
+    if (authenticated) {
+      logout()
+    }
     window.location.href = "/login"
   }
 
