@@ -17,7 +17,7 @@ const WhatIs = () => {
         {/* Header */}
         <Header
           icon={MdVerified}
-          label="What is PramanaX?"
+          label="What is Patram?"
           title="Decentralized Certificate Verification, Secured by Blockchain"
         />
 
@@ -30,7 +30,7 @@ const WhatIs = () => {
           className="mb-16"
         >
           <p className="text-lg sm:text-xl lg:text-2xl text-gray-700 leading-relaxed font-poppins">
-            PramanaX is a{" "}
+            Patram is a{" "}
             <span className="text-[#28aeec] font-semibold">
               decentralized certificate issuance and verification platform
             </span>{" "}

@@ -103,7 +103,7 @@ const KeyBenefits = () => {
         <Header
           icon={HiSparkles}
           label="Key Benefits"
-          title="Why Choose PramanaX?"
+          title="Why Choose Patram?"
         />
 
         {/* Benefits Cards */}

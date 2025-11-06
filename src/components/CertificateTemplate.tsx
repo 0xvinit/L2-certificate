@@ -312,7 +312,7 @@ export default function CertificateTemplate({
           {programCode && ` (${programCode})`} on {date}, demonstrating
           dedication, skill, and commitment throughout the program. This
           certificate is securely recorded and verifiable on-chain through
-          PramanaX, ensuring authenticity and transparency in recognition.
+          Patram, ensuring authenticity and transparency in recognition.
         </p>
       </div>
 

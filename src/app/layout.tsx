@@ -29,12 +29,12 @@ const majorMono = Major_Mono_Display({
 });
 
 export const metadata: Metadata = {
-  title: "PramanaX — Decentralized Certificate Verification Platform",
+  title: "Patram — Decentralized Certificate Verification Platform",
   description:
-    "PramanaX is a decentralized certificate issuance and verification platform ensuring authenticity and transparency through blockchain technology. Admins can create academic or training programs, issue blockchain-secured certificates, and allow anyone to verify authenticity via unique on-chain hashes.",
-  metadataBase: new URL("https://pramanax.vercel.app"),
+    "Patram is a decentralized certificate issuance and verification platform ensuring authenticity and transparency through blockchain technology. Admins can create academic or training programs, issue blockchain-secured certificates, and allow anyone to verify authenticity via unique on-chain hashes.",
+  metadataBase: new URL("https://Patram.vercel.app"),
   keywords: [
-    "PramanaX",
+    "Patram",
     "Blockchain Certificates",
     "Decentralized Verification",
     "Digital Credentials",
@@ -61,7 +61,7 @@ export default function RootLayout({
           <Footer /> */}
           <Navbar />
           {children}
-          <Footer/>
+          <Footer />
         </PrivyProvider>
       </body>
     </html>

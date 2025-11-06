@@ -62,7 +62,7 @@ export default function Navbar() {
           </div>
           <div className="flex flex-col">
             <span className="text-base font-bold tracking-tight text-slate-900">
-              PramanaX
+              Patram
             </span>
             <span className="text-xs text-slate-500 font-medium">
               Certificate System

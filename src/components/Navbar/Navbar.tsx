@@ -105,7 +105,7 @@ const Navbar = () => {
               >
                 {/* bg-linear-to-r from-white via-sky-200 to-sky-400 bg-clip-text text-transparent */}
                 <span className="bg-linear-to-r from-white via-sky-200 to-sky-400 bg-clip-text text-transparent text-4xl font-bold tracking-tighter">
-                  PramanaX
+                  Patram
                 </span>
               </Link>
             </div>

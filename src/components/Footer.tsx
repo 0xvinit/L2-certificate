@@ -1,11 +1,23 @@
 "use client";
 import Link from "next/link";
-import { Home, FileText, RotateCcw, CheckCircle, Shield, Mail, Github, Twitter, Linkedin } from "lucide-react";
+import {
+  Home,
+  FileText,
+  RotateCcw,
+  CheckCircle,
+  Shield,
+  Mail,
+  Github,
+  Twitter,
+  Linkedin,
+} from "lucide-react";
 import { useState } from "react";
 
 export default function Footer() {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [message, setMessage] = useState("");
 
   const handleSubscribe = async (e: React.FormEvent) => {
@@ -83,16 +95,24 @@ export default function Footer() {
             <div className="lg:col-span-4 space-y-6">
               <div className="flex items-center gap-3">
                 <div className="h-14 w-14 rounded-2xl bg-linear-to-br from-[#28aeec] to-sky-400 shadow-xl shadow-[#28aeec]/40 flex items-center justify-center group-hover:shadow-[#28aeec]/60 transition-all duration-300 animate-pulse">
-                  <span className="text-white font-bold text-xl font-cairo">PX</span>
+                  <span className="text-white font-bold text-xl font-cairo">
+                    PX
+                  </span>
                 </div>
                 <div>
-                  <span className="text-2xl font-bold text-white font-cairo block">PramanaX</span>
-                  <span className="text-xs text-sky-300 font-poppins">Blockchain Certification</span>
+                  <span className="text-2xl font-bold text-white font-cairo block">
+                    Patram
+                  </span>
+                  <span className="text-xs text-sky-300 font-poppins">
+                    Blockchain Certification
+                  </span>
                 </div>
               </div>
 
               <p className="text-sm text-slate-300 leading-relaxed font-poppins">
-                Revolutionizing digital credentials with blockchain technology. Secure, transparent, and verifiable certificates for the modern world.
+                Revolutionizing digital credentials with blockchain technology.
+                Secure, transparent, and verifiable certificates for the modern
+                world.
               </p>
 
               {/* Social Media Links */}
@@ -127,7 +147,9 @@ export default function Footer() {
             {/* Product links */}
             <div className="lg:col-span-2 space-y-5">
               <div>
-                <h3 className="text-base font-bold text-white uppercase tracking-wider font-cairo mb-1">Product</h3>
+                <h3 className="text-base font-bold text-white uppercase tracking-wider font-cairo mb-1">
+                  Product
+                </h3>
                 <div className="h-0.5 w-12 bg-linear-to-r from-[#28aeec] to-transparent" />
               </div>
               <ul className="space-y-3 text-sm font-poppins">
@@ -164,7 +186,9 @@ export default function Footer() {
             {/* Admin links */}
             <div className="lg:col-span-2 space-y-5">
               <div>
-                <h3 className="text-base font-bold text-white uppercase tracking-wider font-cairo mb-1">Admin</h3>
+                <h3 className="text-base font-bold text-white uppercase tracking-wider font-cairo mb-1">
+                  Admin
+                </h3>
                 <div className="h-0.5 w-12 bg-linear-to-r from-[#28aeec] to-transparent" />
               </div>
               <ul className="space-y-3 text-sm font-poppins">
@@ -201,11 +225,14 @@ export default function Footer() {
             {/* Newsletter section - More prominent */}
             <div className="lg:col-span-4 space-y-5">
               <div>
-                <h3 className="text-base font-bold text-white uppercase tracking-wider font-cairo mb-1">Stay Connected</h3>
+                <h3 className="text-base font-bold text-white uppercase tracking-wider font-cairo mb-1">
+                  Stay Connected
+                </h3>
                 <div className="h-0.5 w-12 bg-linear-to-r from-[#28aeec] to-transparent" />
               </div>
               <p className="text-sm text-slate-300 font-poppins">
-                Subscribe to get the latest updates, news, and insights about blockchain certification.
+                Subscribe to get the latest updates, news, and insights about
+                blockchain certification.
               </p>
               <form onSubmit={handleSubscribe} className="space-y-3">
                 <div className="relative">
@@ -226,18 +253,30 @@ export default function Footer() {
                   <span className="flex items-center justify-center gap-2">
                     {status === "loading" ? "Subscribing..." : "Subscribe Now"}
                     {status !== "loading" && (
-                      <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      <svg
+                        className="w-4 h-4 group-hover:translate-x-1 transition-transform"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 7l5 5m0 0l-5 5m5-5H6"
+                        />
                       </svg>
                     )}
                   </span>
                 </button>
                 {message && (
-                  <div className={`text-sm font-poppins text-center p-2 rounded-lg ${
-                    status === "success"
-                      ? "bg-green-500/20 text-green-300 border border-green-500/30"
-                      : "bg-red-500/20 text-red-300 border border-red-500/30"
-                  }`}>
+                  <div
+                    className={`text-sm font-poppins text-center p-2 rounded-lg ${
+                      status === "success"
+                        ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                        : "bg-red-500/20 text-red-300 border border-red-500/30"
+                    }`}
+                  >
                     {message}
                   </div>
                 )}
@@ -254,7 +293,9 @@ export default function Footer() {
         {/* Bottom section */}
         <div className="py-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <p className="text-sm text-slate-400 text-center md:text-left font-poppins">
-            © {new Date().getFullYear()} <span className="text-[#28aeec] font-semibold">PramanaX</span>. All rights reserved. Built with blockchain technology.
+            © {new Date().getFullYear()}{" "}
+            <span className="text-[#28aeec] font-semibold">Patram</span>. All
+            rights reserved. Built with blockchain technology.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-poppins">
             <Link
