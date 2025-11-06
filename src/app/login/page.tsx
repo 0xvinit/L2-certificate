@@ -47,6 +47,13 @@ export default function LoginPage() {
               window.location.replace("/admin/dashboard");
               return;
             }
+            // If user is not in allowlist (403), redirect to student page
+            if (res.status === 403) {
+              exchangedRef.current = true;
+              console.log("[login] User not in allowlist, redirecting to student page");
+              window.location.replace("/student");
+              return;
+            }
             // If unauthorized or invalid token, wait and retry
           }
           await new Promise(r => setTimeout(r, 400));
