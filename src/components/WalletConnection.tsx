@@ -186,7 +186,7 @@ export default function WalletConnection({
   return (
     <div className="space-y-4">
       {/* Main Wallet Connection Card */}
-      {!authenticated ? (
+      {/* {!authenticated ? (
         <div className="rounded-2xl bg-linear-to-br from-sky-50 to-sky-100/60 border-2 border-sky-200 p-6">
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <div className="rounded-full bg-linear-to-br from-[#28aeec] to-sky-400 p-4 shadow-lg">
@@ -266,7 +266,7 @@ export default function WalletConnection({
             </button>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Additional Features */}
       {(showOnChainIssuer || showSwitchChain) && (
@@ -337,7 +337,7 @@ export default function WalletConnection({
             </div>
           )}
 
-          {showSwitchChain && chainId === 80002 && (
+          {/* {showSwitchChain && chainId === 80002 && (
             <div className="rounded-2xl bg-linear-to-br from-emerald-50 to-emerald-100/60 border-2 border-emerald-200 p-5">
               <div className="flex items-center gap-3">
                 <div className="rounded-full bg-emerald-100 p-2">
@@ -365,7 +365,7 @@ export default function WalletConnection({
                 </div>
               </div>
             </div>
-          )}
+          )} */}
         </div>
       )}
     </div>

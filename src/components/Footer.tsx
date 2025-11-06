@@ -94,13 +94,9 @@ export default function Footer() {
             {/* Brand section - Larger and more prominent */}
             <div className="lg:col-span-4 space-y-6">
               <div className="flex items-center gap-3">
-                <div className="h-14 w-14 rounded-2xl bg-linear-to-br from-[#28aeec] to-sky-400 shadow-xl shadow-[#28aeec]/40 flex items-center justify-center group-hover:shadow-[#28aeec]/60 transition-all duration-300 animate-pulse">
-                  <span className="text-white font-bold text-xl font-cairo">
-                    PX
-                  </span>
-                </div>
+                
                 <div>
-                  <span className="text-2xl font-bold text-white font-cairo block">
+                  <span className="text-2xl font-bold bg-linear-to-r from-white via-sky-200 to-sky-400 bg-clip-text text-transparent font-major-mono block">
                     Patram
                   </span>
                   <span className="text-xs text-sky-300 font-poppins">

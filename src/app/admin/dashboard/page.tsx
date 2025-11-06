@@ -141,9 +141,9 @@ export default function Dashboard() {
       </div>
 
       <div className="mb-12 relative z-10">
-        <div className="rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30">
+        {/* <div className="rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30"> */}
           <WalletConnection />
-        </div>
+        {/* </div> */}
       </div>
 
       {stats && (

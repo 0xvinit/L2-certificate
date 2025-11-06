@@ -104,7 +104,8 @@ export default function RevokePage() {
       </div>
 
       {/* Wallet Connection Card */}
-      <div className="mb-8 rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 relative z-10">
+      {/* <div className="mb-8 rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 relative z-10"> */}
+      <div className="mb-8">
         <WalletConnection showOnChainIssuer={true} showSwitchChain={true} />
       </div>
 

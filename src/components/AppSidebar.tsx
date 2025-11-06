@@ -174,8 +174,23 @@ export default function AppSidebar() {
           </p>
 
           {loading ? (
-            <div className="px-4 py-3 text-sm text-gray-600 font-poppins">
-              Loading...
+            <div className="space-y-2">
+              {/* Skeleton Loader - Multiple items */}
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-4 px-4 py-3.5 rounded-xl animate-pulse"
+                >
+                  {/* Skeleton Icon */}
+                  <div className="rounded-lg p-2 bg-sky-100/50">
+                    <div className="w-5 h-5 bg-linear-to-r from-sky-200 to-sky-300 rounded" />
+                  </div>
+                  {/* Skeleton Text */}
+                  <div className="flex-1">
+                    <div className="h-4 bg-linear-to-r from-sky-200 to-sky-300 rounded w-3/4" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             items.map((item) => {
