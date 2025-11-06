@@ -61,7 +61,7 @@ export default function RootLayout({
           <Footer /> */}
           <Navbar />
           {children}
-          {/* <Footer/> */}
+          <Footer/>
         </PrivyProvider>
       </body>
     </html>
