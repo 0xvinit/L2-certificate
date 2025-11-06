@@ -243,44 +243,57 @@ export default function IssuePage() {
 
   return (
     <AppShell>
-      <div className="mb-12">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight text-slate-900">Issue Certificate</h1>
-          <p className="mt-2 text-slate-500">Create and issue new certificates to students</p>
+      {/* Background gradient overlays */}
+      <div className="absolute top-[10%] left-[5%] w-[300px] h-[300px] bg-sky-400/20 blur-3xl opacity-100 rounded-full z-0 pointer-events-none" />
+      <div className="absolute bottom-[20%] right-[8%] w-[250px] h-[250px] bg-blue-400/25 blur-3xl opacity-100 rounded-full z-0 pointer-events-none" />
+
+      <div className="mb-12 relative z-10">
+        <div className="text-center">
+          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900 font-cairo uppercase">
+            Issue Certificate
+          </h1>
+          <p className="mt-4 text-lg text-gray-700 font-poppins max-w-2xl mx-auto">
+            Create and issue new blockchain certificates to students
+          </p>
         </div>
       </div>
 
       {/* Wallet Connection Card */}
-      <div className="mb-8 rounded-2xl bg-gradient-to-br from-slate-50 via-white to-slate-50/40 p-6 transition-all duration-300 hover:shadow-lg border border-slate-100/40 backdrop-blur-sm">
+      <div className="mb-8 rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 relative z-10">
         <WalletConnection showOnChainIssuer={true} showSwitchChain={true} />
       </div>
 
       {programs.length === 0 && wallets.length > 0 && (
-        <div className="mb-8 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-50/40 p-4 border border-amber-200/60 flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+        <div className="mb-8 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-50/40 p-5 border-2 border-amber-200/60 flex items-start gap-4 relative z-10">
+          <div className="rounded-full bg-amber-100 p-2">
+            <AlertCircle className="h-6 w-6 text-amber-600 flex-shrink-0" />
+          </div>
           <div>
-            <p className="font-semibold text-amber-900">No programs found</p>
-            <p className="text-sm text-amber-800 mt-1">Please create a program first from the Programs page</p>
+            <p className="font-bold text-amber-900 font-cairo text-lg uppercase">No Programs Found</p>
+            <p className="text-base text-amber-800 mt-2 font-poppins">Please create a program first from the Programs page</p>
           </div>
         </div>
       )}
 
       {/* Certificate Details Form */}
-      <div className="rounded-2xl bg-gradient-to-br from-slate-50 via-white to-slate-50/40 p-8 transition-all duration-300 hover:shadow-lg border border-slate-100/40 backdrop-blur-sm">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="rounded-full bg-blue-50 p-2.5">
-            <FileText className="h-5 w-5 text-blue-600" />
+      <div className="rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-8 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 relative z-10">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="rounded-full bg-gradient-to-br from-[#28aeec] to-sky-400 p-4 shadow-lg">
+            <FileText className="h-7 w-7 text-white" />
           </div>
-          <h2 className="text-xl font-semibold text-slate-900">Certificate Details</h2>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 font-cairo uppercase">Certificate Details</h2>
+            <p className="text-base text-gray-700 mt-1 font-poppins">Fill in the student and program information</p>
+          </div>
         </div>
 
-        <form onSubmit={submit} className="space-y-5">
-          <div className="grid sm:grid-cols-2 gap-5">
+        <form onSubmit={submit} className="space-y-6">
+          <div className="grid sm:grid-cols-2 gap-6">
             {/* Student Name */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Student Name</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2 font-cairo uppercase">Student Name</label>
               <input
-                className="w-full h-11 rounded-xl border border-slate-200/80 bg-white/50 px-4 text-sm outline-none transition-all focus:border-blue-300 focus:ring-4 focus:ring-blue-100/50"
+                className="w-full h-14 rounded-xl border-2 border-sky-100 bg-white px-4 text-base outline-none transition-all focus:border-[#28aeec] focus:ring-4 focus:ring-sky-100/50 font-poppins"
                 placeholder="Enter student name"
                 value={studentName}
                 onChange={(e) => setStudentName(e.target.value)}
@@ -291,9 +304,9 @@ export default function IssuePage() {
 
             {/* Student ID */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Student ID</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2 font-cairo uppercase">Student ID</label>
               <input
-                className="w-full h-11 rounded-xl border border-slate-200/80 bg-white/50 px-4 text-sm outline-none transition-all focus:border-blue-300 focus:ring-4 focus:ring-blue-100/50"
+                className="w-full h-14 rounded-xl border-2 border-sky-100 bg-white px-4 text-base outline-none transition-all focus:border-[#28aeec] focus:ring-4 focus:ring-sky-100/50 font-poppins"
                 placeholder="Enter student ID"
                 value={studentId}
                 onChange={(e) => setStudentId(e.target.value)}
@@ -304,10 +317,10 @@ export default function IssuePage() {
 
             {/* Program */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Program</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2 font-cairo uppercase">Program</label>
               {programs.length > 0 ? (
                 <select
-                  className="w-full h-11 rounded-xl border border-slate-200/80 bg-white/50 px-4 text-sm outline-none transition-all focus:border-blue-300 focus:ring-4 focus:ring-blue-100/50"
+                  className="w-full h-14 rounded-xl border-2 border-sky-100 bg-white px-4 text-base outline-none transition-all focus:border-[#28aeec] focus:ring-4 focus:ring-sky-100/50 font-poppins"
                   value={programId}
                   onChange={(e) => {
                     setProgramId(e.target.value)
@@ -325,7 +338,7 @@ export default function IssuePage() {
                   ))}
                 </select>
               ) : (
-                <div className="rounded-xl border border-amber-200/60 bg-amber-50/40 px-4 py-3 text-sm text-amber-800">
+                <div className="rounded-xl border-2 border-amber-200/60 bg-amber-50/40 px-4 py-4 text-base text-amber-800 font-poppins">
                   No programs available
                 </div>
               )}
@@ -333,10 +346,10 @@ export default function IssuePage() {
 
             {/* Issue Date */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Issue Date</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2 font-cairo uppercase">Issue Date</label>
               <input
                 type="date"
-                className="w-full h-11 rounded-xl border border-slate-200/80 bg-white/50 px-4 text-sm outline-none transition-all focus:border-blue-300 focus:ring-4 focus:ring-blue-100/50"
+                className="w-full h-14 rounded-xl border-2 border-sky-100 bg-white px-4 text-base outline-none transition-all focus:border-[#28aeec] focus:ring-4 focus:ring-sky-100/50 font-poppins"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 required
@@ -347,9 +360,14 @@ export default function IssuePage() {
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-xl bg-gradient-to-br from-red-50 to-red-50/40 p-4 border border-red-200/60 flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700 font-medium">{error}</p>
+            <div className="rounded-2xl bg-gradient-to-br from-red-50 to-red-50/40 p-6 border-2 border-red-200/60 flex items-start gap-4">
+              <div className="rounded-full bg-red-100 p-2">
+                <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0" />
+              </div>
+              <div>
+                <p className="font-bold text-red-900 font-cairo text-lg uppercase">Error</p>
+                <p className="text-base text-red-700 mt-2 font-poppins">{error}</p>
+              </div>
             </div>
           )}
 
@@ -357,34 +375,36 @@ export default function IssuePage() {
           <button
             type="submit"
             disabled={loading || !wallets.length || !programId}
-            className="w-full h-11 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-blue-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full h-14 rounded-xl bg-gradient-to-r from-[#28aeec] to-sky-400 text-white font-bold transition-all duration-300 hover:shadow-xl hover:shadow-sky-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-poppins text-lg uppercase hover:scale-105"
           >
-            <Award className="h-4 w-4" />
+            <Award className="h-6 w-6" />
             {loading ? "Issuing Certificate..." : "Issue Certificate"}
           </button>
         </form>
 
         {/* Success Message */}
         {result && (
-          <div className="mt-6 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-50/40 p-5 border border-emerald-200/60">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+          <div className="mt-8 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-50/40 p-6 border-2 border-emerald-200/60">
+            <div className="flex items-start gap-4">
+              <div className="rounded-full bg-emerald-100 p-2">
+                <CheckCircle2 className="h-7 w-7 text-emerald-600 flex-shrink-0" />
+              </div>
               <div className="flex-1">
-                <p className="font-semibold text-emerald-900">Certificate Issued Successfully</p>
-                <div className="mt-4 space-y-3">
-                  <div className="rounded-lg bg-white/40 p-3">
-                    <p className="text-xs text-slate-500 font-medium">Hash</p>
-                    <code className="text-xs text-slate-700 font-mono break-all">{result.hash}</code>
+                <p className="font-bold text-emerald-900 font-cairo text-xl uppercase">Certificate Issued Successfully</p>
+                <div className="mt-5 space-y-4">
+                  <div className="rounded-xl bg-white/60 border-2 border-emerald-100 p-4">
+                    <p className="text-sm text-gray-600 font-cairo font-bold uppercase mb-2">Hash</p>
+                    <code className="text-sm text-gray-900 font-mono break-all">{result.hash}</code>
                   </div>
-                  <div className="rounded-lg bg-white/40 p-3">
-                    <p className="text-xs text-slate-500 font-medium">Transaction</p>
-                    <code className="text-xs text-slate-700 font-mono break-all">{result.txHash}</code>
+                  <div className="rounded-xl bg-white/60 border-2 border-emerald-100 p-4">
+                    <p className="text-sm text-gray-600 font-cairo font-bold uppercase mb-2">Transaction</p>
+                    <code className="text-sm text-gray-900 font-mono break-all">{result.txHash}</code>
                   </div>
                   {result.pdfBase64 && (
                     <a
                       download={`certificate-${studentId || "cert"}.pdf`}
                       href={`data:application/pdf;base64,${result.pdfBase64}`}
-                      className="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:shadow-lg transition-all"
+                      className="inline-flex h-12 items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 text-base font-bold text-white hover:shadow-xl hover:shadow-emerald-200/50 transition-all font-poppins uppercase hover:scale-105"
                     >
                       Download Certificate PDF
                     </a>

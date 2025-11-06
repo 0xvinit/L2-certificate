@@ -87,18 +87,22 @@ export default function Dashboard() {
 
   return (
     <AppShell>
-      <div className="mb-12">
+      {/* Background gradient overlays */}
+      <div className="absolute top-[10%] left-[5%] w-[300px] h-[300px] bg-sky-400/20 blur-3xl opacity-100 rounded-full z-0 pointer-events-none" />
+      <div className="absolute bottom-[20%] right-[8%] w-[250px] h-[250px] bg-blue-400/25 blur-3xl opacity-100 rounded-full z-0 pointer-events-none" />
+
+      <div className="mb-12 relative z-10">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight text-slate-900">Dashboard</h1>
+            <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900 font-cairo uppercase">Dashboard</h1>
             {admin && (
-              <p className="mt-3 flex items-center gap-2 text-sm text-slate-500">
-                <span>
-                  Welcome back, <span className="font-semibold text-slate-700">{admin.adminId}</span>
+              <p className="mt-4 flex items-center gap-3 text-base font-poppins">
+                <span className="text-gray-700">
+                  Welcome back, <span className="font-semibold text-gray-900">{admin.adminId}</span>
                 </span>
                 {admin.isSuperAdmin && (
-                  <span className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 ring-1 ring-blue-200/60">
-                    <Award className="h-3.5 w-3.5" />
+                  <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#28aeec] to-sky-400 px-4 py-1.5 text-sm font-bold text-white shadow-lg">
+                    <Award className="h-4 w-4" />
                     Super Admin
                   </span>
                 )}
@@ -108,75 +112,77 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="mb-12">
-        <WalletConnection />
+      <div className="mb-12 relative z-10">
+        <div className="rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30">
+          <WalletConnection />
+        </div>
       </div>
 
       {stats && (
-        <div className="mb-12">
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-12 relative z-10">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {/* Total Issued */}
-            <div className="group relative rounded-2xl bg-gradient-to-br from-blue-50 via-white to-blue-50/40 p-6 transition-all duration-300 hover:shadow-lg border border-blue-100/40 backdrop-blur-sm">
+            <div className="group relative rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 hover:border-[#28aeec]">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <p className="text-xs font-medium text-slate-500 tracking-wide">Total Issued</p>
-                  <p className="mt-3 text-3xl font-bold text-slate-900">{stats.total || 0}</p>
+                  <p className="text-sm font-bold text-gray-600 tracking-wide font-cairo uppercase">Total Issued</p>
+                  <p className="mt-4 text-4xl font-bold text-gray-900 font-cairo">{stats.total || 0}</p>
                 </div>
-                <div className="rounded-full bg-blue-100 p-2.5 text-blue-600 transition-transform duration-300 group-hover:scale-110">
-                  <BarChart3 className="h-5 w-5" />
+                <div className="rounded-full bg-gradient-to-br from-[#28aeec] to-sky-400 p-3 text-white shadow-lg transition-transform duration-300 group-hover:scale-110">
+                  <BarChart3 className="h-6 w-6" />
                 </div>
               </div>
-              <div className="mt-4 h-0.5 w-full rounded-full bg-blue-100">
-                <div className="h-full w-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-500"></div>
+              <div className="mt-5 h-1 w-full rounded-full bg-sky-100">
+                <div className="h-full w-full rounded-full bg-gradient-to-r from-[#28aeec] to-sky-400 transition-all duration-500"></div>
               </div>
             </div>
 
             {/* Revoked */}
-            <div className="group relative rounded-2xl bg-gradient-to-br from-red-50 via-white to-red-50/40 p-6 transition-all duration-300 hover:shadow-lg border border-red-100/40 backdrop-blur-sm">
+            <div className="group relative rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 hover:border-red-400">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <p className="text-xs font-medium text-slate-500 tracking-wide">Revoked</p>
-                  <p className="mt-3 text-3xl font-bold text-red-600">{stats.revoked || 0}</p>
+                  <p className="text-sm font-bold text-gray-600 tracking-wide font-cairo uppercase">Revoked</p>
+                  <p className="mt-4 text-4xl font-bold text-red-600 font-cairo">{stats.revoked || 0}</p>
                 </div>
-                <div className="rounded-full bg-red-100 p-2.5 text-red-600 transition-transform duration-300 group-hover:scale-110">
-                  <AlertCircle className="h-5 w-5" />
+                <div className="rounded-full bg-gradient-to-br from-red-400 to-red-500 p-3 text-white shadow-lg transition-transform duration-300 group-hover:scale-110">
+                  <AlertCircle className="h-6 w-6" />
                 </div>
               </div>
-              <div className="mt-4 h-0.5 w-full rounded-full bg-red-100">
+              <div className="mt-5 h-1 w-full rounded-full bg-red-100">
                 <div className="h-full w-full rounded-full bg-gradient-to-r from-red-400 to-red-600 transition-all duration-500"></div>
               </div>
             </div>
 
             {/* Active */}
-            <div className="group relative rounded-2xl bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 p-6 transition-all duration-300 hover:shadow-lg border border-emerald-100/40 backdrop-blur-sm">
+            <div className="group relative rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 hover:border-emerald-400">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <p className="text-xs font-medium text-slate-500 tracking-wide">Active</p>
-                  <p className="mt-3 text-3xl font-bold text-emerald-600">
+                  <p className="text-sm font-bold text-gray-600 tracking-wide font-cairo uppercase">Active</p>
+                  <p className="mt-4 text-4xl font-bold text-emerald-600 font-cairo">
                     {(stats.total || 0) - (stats.revoked || 0)}
                   </p>
                 </div>
-                <div className="rounded-full bg-emerald-100 p-2.5 text-emerald-600 transition-transform duration-300 group-hover:scale-110">
-                  <CheckCircle2 className="h-5 w-5" />
+                <div className="rounded-full bg-gradient-to-br from-emerald-400 to-emerald-500 p-3 text-white shadow-lg transition-transform duration-300 group-hover:scale-110">
+                  <CheckCircle2 className="h-6 w-6" />
                 </div>
               </div>
-              <div className="mt-4 h-0.5 w-full rounded-full bg-emerald-100">
+              <div className="mt-5 h-1 w-full rounded-full bg-emerald-100">
                 <div className="h-full w-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-500"></div>
               </div>
             </div>
 
             {/* Programs */}
-            <div className="group relative rounded-2xl bg-gradient-to-br from-amber-50 via-white to-amber-50/40 p-6 transition-all duration-300 hover:shadow-lg border border-amber-100/40 backdrop-blur-sm">
+            <div className="group relative rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 hover:border-amber-400">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <p className="text-xs font-medium text-slate-500 tracking-wide">Programs</p>
-                  <p className="mt-3 text-3xl font-bold text-amber-600">{programsCount}</p>
+                  <p className="text-sm font-bold text-gray-600 tracking-wide font-cairo uppercase">Programs</p>
+                  <p className="mt-4 text-4xl font-bold text-amber-600 font-cairo">{programsCount}</p>
                 </div>
-                <div className="rounded-full bg-amber-100 p-2.5 text-amber-600 transition-transform duration-300 group-hover:scale-110">
-                  <Award className="h-5 w-5" />
+                <div className="rounded-full bg-gradient-to-br from-amber-400 to-amber-500 p-3 text-white shadow-lg transition-transform duration-300 group-hover:scale-110">
+                  <Award className="h-6 w-6" />
                 </div>
               </div>
-              <div className="mt-4 h-0.5 w-full rounded-full bg-amber-100">
+              <div className="mt-5 h-1 w-full rounded-full bg-amber-100">
                 <div className="h-full w-full rounded-full bg-gradient-to-r from-amber-400 to-amber-600 transition-all duration-500"></div>
               </div>
             </div>
@@ -185,26 +191,29 @@ export default function Dashboard() {
       )}
 
       {stats && (
-        <div className="mb-12 grid gap-5 sm:grid-cols-3">
+        <div className="mb-12 grid gap-6 sm:grid-cols-3 relative z-10">
           {/* Admins */}
-          <div className="rounded-2xl bg-gradient-to-br from-slate-50 via-white to-slate-50/40 p-6 transition-all duration-300 hover:shadow-lg border border-slate-100/40 backdrop-blur-sm">
+          <div className="group relative rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 hover:border-slate-400">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-xs font-medium text-slate-500 tracking-wide">Admins</p>
-                <p className="mt-3 text-3xl font-bold text-slate-900">{adminsCount}</p>
+                <p className="text-sm font-bold text-gray-600 tracking-wide font-cairo uppercase">Admins</p>
+                <p className="mt-4 text-4xl font-bold text-slate-900 font-cairo">{adminsCount}</p>
               </div>
-              <div className="rounded-full bg-slate-100 p-2.5 text-slate-600">
-                <Users className="h-5 w-5" />
+              <div className="rounded-full bg-gradient-to-br from-slate-400 to-slate-500 p-3 text-white shadow-lg transition-transform duration-300 group-hover:scale-110">
+                <Users className="h-6 w-6" />
               </div>
+            </div>
+            <div className="mt-5 h-1 w-full rounded-full bg-slate-100">
+              <div className="h-full w-full rounded-full bg-gradient-to-r from-slate-400 to-slate-600 transition-all duration-500"></div>
             </div>
           </div>
 
           {/* Issued (7 days) */}
-          <div className="rounded-2xl bg-gradient-to-br from-indigo-50 via-white to-indigo-50/40 p-6 transition-all duration-300 hover:shadow-lg border border-indigo-100/40 backdrop-blur-sm">
+          <div className="group relative rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 hover:border-indigo-400">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-xs font-medium text-slate-500 tracking-wide">Issued (7 days)</p>
-                <p className="mt-3 text-3xl font-bold text-indigo-600">
+                <p className="text-sm font-bold text-gray-600 tracking-wide font-cairo uppercase">Issued (7 days)</p>
+                <p className="mt-4 text-4xl font-bold text-indigo-600 font-cairo">
                   {Array.isArray(stats.recent)
                     ? stats.recent.filter(
                         (c: any) => Date.now() - new Date(c.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000,
@@ -212,39 +221,45 @@ export default function Dashboard() {
                     : 0}
                 </p>
               </div>
-              <div className="rounded-full bg-indigo-100 p-2.5 text-indigo-600">
-                <TrendingUp className="h-5 w-5" />
+              <div className="rounded-full bg-gradient-to-br from-indigo-400 to-indigo-500 p-3 text-white shadow-lg transition-transform duration-300 group-hover:scale-110">
+                <TrendingUp className="h-6 w-6" />
               </div>
+            </div>
+            <div className="mt-5 h-1 w-full rounded-full bg-indigo-100">
+              <div className="h-full w-full rounded-full bg-gradient-to-r from-indigo-400 to-indigo-600 transition-all duration-500"></div>
             </div>
           </div>
 
           {/* Revocation Rate */}
-          <div className="rounded-2xl bg-gradient-to-br from-cyan-50 via-white to-cyan-50/40 p-6 transition-all duration-300 hover:shadow-lg border border-cyan-100/40 backdrop-blur-sm">
+          <div className="group relative rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 hover:border-cyan-400">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-xs font-medium text-slate-500 tracking-wide">Revocation Rate</p>
-                <p className="mt-3 text-3xl font-bold text-cyan-600">
+                <p className="text-sm font-bold text-gray-600 tracking-wide font-cairo uppercase">Revocation Rate</p>
+                <p className="mt-4 text-4xl font-bold text-cyan-600 font-cairo">
                   {stats.total ? Math.round(((stats.revoked || 0) / stats.total) * 100) : 0}%
                 </p>
               </div>
-              <div className="rounded-full bg-cyan-100 p-2.5 text-cyan-600">
-                <TrendingDown className="h-5 w-5" />
+              <div className="rounded-full bg-gradient-to-br from-cyan-400 to-cyan-500 p-3 text-white shadow-lg transition-transform duration-300 group-hover:scale-110">
+                <TrendingDown className="h-6 w-6" />
               </div>
+            </div>
+            <div className="mt-5 h-1 w-full rounded-full bg-cyan-100">
+              <div className="h-full w-full rounded-full bg-gradient-to-r from-cyan-400 to-cyan-600 transition-all duration-500"></div>
             </div>
           </div>
         </div>
       )}
 
       {(dailyIssued.length > 0 || dailyRevoked.length > 0) && (
-        <div className="mb-12 grid gap-6 lg:grid-cols-2">
+        <div className="mb-12 grid gap-6 lg:grid-cols-2 relative z-10">
           {/* Issued Certificates Chart */}
-          <div className="rounded-2xl bg-gradient-to-br from-slate-50 via-white to-slate-50/40 p-6 transition-all duration-300 hover:shadow-lg border border-slate-100/40 backdrop-blur-sm">
+          <div className="rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-8 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30">
             <div className="flex items-start justify-between pb-4">
               <div className="flex-1">
-                <h3 className="font-semibold text-slate-900">Issued Certificates</h3>
-                <p className="mt-1 text-xs text-slate-500">Last 7 days activity</p>
+                <h3 className="text-xl font-bold text-gray-900 font-cairo uppercase">Issued Certificates</h3>
+                <p className="mt-2 text-sm text-gray-600 font-poppins">Last 7 days activity</p>
               </div>
-              <div className="rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-600">
+              <div className="rounded-full bg-gradient-to-r from-[#28aeec] to-sky-400 px-4 py-2 text-base font-bold text-white shadow-lg">
                 {dailyIssued.reduce((a, b) => a + b, 0)}
               </div>
             </div>
@@ -257,13 +272,13 @@ export default function Dashboard() {
           </div>
 
           {/* Revoked Certificates Chart */}
-          <div className="rounded-2xl bg-gradient-to-br from-slate-50 via-white to-slate-50/40 p-6 transition-all duration-300 hover:shadow-lg border border-slate-100/40 backdrop-blur-sm">
+          <div className="rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-8 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30">
             <div className="flex items-start justify-between pb-4">
               <div className="flex-1">
-                <h3 className="font-semibold text-slate-900">Revoked Certificates</h3>
-                <p className="mt-1 text-xs text-slate-500">Last 7 days activity</p>
+                <h3 className="text-xl font-bold text-gray-900 font-cairo uppercase">Revoked Certificates</h3>
+                <p className="mt-2 text-sm text-gray-600 font-poppins">Last 7 days activity</p>
               </div>
-              <div className="rounded-full bg-red-50 px-3 py-1 text-sm font-semibold text-red-600">
+              <div className="rounded-full bg-gradient-to-r from-red-500 to-red-600 px-4 py-2 text-base font-bold text-white shadow-lg">
                 {dailyRevoked.reduce((a, b) => a + b, 0)}
               </div>
             </div>
@@ -278,32 +293,34 @@ export default function Dashboard() {
       )}
 
       {stats && stats.recent && stats.recent.length > 0 && (
-        <div className="rounded-2xl bg-gradient-to-br from-slate-50 via-white to-slate-50/40 p-6 transition-all duration-300 hover:shadow-lg border border-slate-100/40 backdrop-blur-sm">
-          <div className="mb-4 flex items-center justify-between pb-4">
+        <div className="rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-8 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 relative z-10">
+          <div className="mb-6 flex items-center justify-between">
             <div className="flex-1">
-              <h3 className="font-semibold text-slate-900">Recent Certificates</h3>
-              <p className="mt-1 text-xs text-slate-500">{stats.recent.length} recent issuances</p>
+              <h3 className="text-xl font-bold text-gray-900 font-cairo uppercase">Recent Certificates</h3>
+              <p className="mt-2 text-sm text-gray-600 font-poppins">{stats.recent.length} recent issuances</p>
             </div>
-            <Clock className="h-5 w-5 text-slate-400" />
+            <div className="rounded-full bg-sky-100 p-3">
+              <Clock className="h-6 w-6 text-[#28aeec]" />
+            </div>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {stats.recent.slice(0, 8).map((c: any) => (
               <div
                 key={c._id}
-                className="group flex items-center justify-between rounded-xl bg-white/40 px-4 py-3 transition-all duration-200 hover:bg-blue-50/50 border border-slate-100/40 hover:border-blue-200/40"
+                className="group flex items-center justify-between rounded-2xl bg-white/70 backdrop-blur-sm px-5 py-4 transition-all duration-300 hover:shadow-lg hover:shadow-sky-200/30 border-2 border-sky-100 hover:border-[#28aeec]"
               >
                 <div className="flex-1">
-                  <p className="font-medium text-slate-900">{c.studentName}</p>
-                  <p className="mt-0.5 text-xs text-slate-500">ID: {c.studentId}</p>
+                  <p className="font-bold text-gray-900 font-poppins">{c.studentName}</p>
+                  <p className="mt-1 text-sm text-gray-600 font-poppins">ID: {c.studentId}</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                   {c.revoked && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 ring-1 ring-red-200/60">
-                      <AlertCircle className="h-3 w-3" />
+                    <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1.5 text-sm font-bold text-red-600 border-2 border-red-200">
+                      <AlertCircle className="h-4 w-4" />
                       Revoked
                     </span>
                   )}
-                  <p className="text-right text-xs text-slate-500">{new Date(c.createdAt).toLocaleString()}</p>
+                  <p className="text-right text-sm text-gray-600 font-poppins">{new Date(c.createdAt).toLocaleString()}</p>
                 </div>
               </div>
             ))}
