@@ -1,9 +1,14 @@
+import HomePage from "@/components/HomePage/HomePage";
+import KeyBenefits from "@/components/HomePage/KeyBenefits";
+import Technology from "@/components/HomePage/Technology";
+import WhatIs from "@/components/HomePage/WhatIs";
+import WhyUs from "@/components/HomePage/WhyUs";
 import Link from "next/link";
 
 export default function Home() {
   return (
-    <div>
-      <section className="container max-w-4xl py-16">
+    <>
+      {/* <section className="container max-w-4xl py-16">
         <h1 className="text-4xl font-semibold tracking-tight">ChainGrad — L2-Verifiable Certificates</h1>
         <p className="mt-3 max-w-2xl text-base text-muted-foreground">
           On L2, low-fee, onchain proofs with verifiable storage. Issue, verify, and manage academic
@@ -27,7 +32,12 @@ export default function Home() {
             <p className="mt-1 text-sm text-muted-foreground">Clear history and revocations</p>
           </div>
         </div>
-      </section>
-    </div>
+      </section> */}
+      <HomePage />
+      <WhatIs/>
+      <KeyBenefits/>
+      <Technology/>
+      <WhyUs/>
+    </>
   );
 }
