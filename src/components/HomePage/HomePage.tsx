@@ -131,7 +131,7 @@ const Homepage = () => {
           <div className="max-w-[1600px] mx-auto">
             <h1
               key={`title-${currentImageIndex}`}
-              className="text-3xl sm:text-4xl lg:text-6xl font-semibold mb-6 leading-tight font-cairo drop-shadow-lg bg-linear-to-r from-white via-sky-200 to-sky-400 bg-clip-text text-transparent uppercase animate-fadeInUp"
+              className="text-3xl sm:text-4xl lg:text-6xl font-bold mb-6 leading-tight font-cairo drop-shadow-lg bg-linear-to-r from-white via-sky-200 to-sky-400 bg-clip-text text-transparent uppercase animate-fadeInUp"
               dangerouslySetInnerHTML={{ __html: slideContent[currentImageIndex].title }}
             />
             {/* bg-linear-to-r from-white via-sky-200 to-sky-400 bg-clip-text text-transparent */}
