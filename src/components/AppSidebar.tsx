@@ -48,7 +48,7 @@ export default function AppSidebar() {
           hadUserInfoRef.current = false;
           // If we're on an admin page and lost authentication (not initial load), redirect
           if (hadUserInfo && pathname.startsWith("/admin")) {
-            router.push("/login");
+            router.push("/");
           }
         }
       } catch {
@@ -56,7 +56,7 @@ export default function AppSidebar() {
         setUserInfo(null);
         hadUserInfoRef.current = false;
         if (hadUserInfo && pathname.startsWith("/admin")) {
-          router.push("/login");
+          router.push("/");
         }
       } finally {
         setLoading(false);

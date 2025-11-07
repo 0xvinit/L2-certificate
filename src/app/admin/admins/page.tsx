@@ -35,7 +35,7 @@ export default function AdminsPage() {
         credentials: "include",
       });
       if (res.status === 401 || res.status === 403) {
-        router.push("/login");
+        router.push("/");
         return;
       }
       const data = await res.json();

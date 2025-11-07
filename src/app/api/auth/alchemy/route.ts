@@ -6,14 +6,30 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const email = String(body?.email || "").toLowerCase();
-    if (!email) return NextResponse.json({ error: "Missing email" }, { status: 400 });
+    const walletAddress = String(body?.walletAddress || "").toLowerCase();
+    if (!email && !walletAddress) return NextResponse.json({ error: "Missing email or walletAddress" }, { status: 400 });
 
     const allowCol = await collection("adminAllowlist");
-    const me = (await allowCol.findOne({ email, status: { $in: ["active", "pending"] } })) as any;
+    let me = null as any;
+
+    if (email) {
+      me = (await allowCol.findOne({ email, status: { $in: ["active", "pending"] } })) as any;
+    }
+
+    // Fallback: find admin by wallet address if email missing/not allowlisted yet
+    if (!me && walletAddress) {
+      const walletCol = await collection("walletConnections");
+      const linked = (await walletCol.findOne({ walletAddress })) as any;
+      if (linked && linked.adminId) {
+        me = (await allowCol.findOne({ email: String(linked.adminId).toLowerCase(), status: { $in: ["active", "pending"] } })) as any;
+      }
+    }
+
     if (!me) return NextResponse.json({ error: "Not in allowlist" }, { status: 403 });
 
-    const token = signSession({ adminId: email, isSuperAdmin: !!me.isSuperAdmin });
-    console.log("Alchemy Auth - Token created for:", email);
+    const adminId = me.email as string;
+    const token = signSession({ adminId, isSuperAdmin: !!me.isSuperAdmin });
+    console.log("Alchemy Auth - Token created for:", adminId);
     
     const res = NextResponse.json({ ok: true, role: me.isSuperAdmin ? "super" : "admin" });
     
@@ -27,7 +43,7 @@ export async function POST(req: NextRequest) {
       // Don't set domain - let browser use default
     });
     
-    console.log("Alchemy Auth - Cookie set for:", email);
+    console.log("Alchemy Auth - Cookie set for:", adminId);
     console.log("Alchemy Auth - Cookie settings:", {
       path: "/",
       httpOnly: true,

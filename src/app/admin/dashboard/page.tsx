@@ -31,7 +31,7 @@ export default function Dashboard() {
         const res = await fetch("/api/auth/me", { credentials: "include" });
         if (!res.ok) {
           if (res.status === 401) {
-            window.location.href = "/login";
+            window.location.href = "/";
             return;
           }
         } else {
@@ -105,7 +105,7 @@ export default function Dashboard() {
 
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
+    router.push("/");
   };
 
   return (

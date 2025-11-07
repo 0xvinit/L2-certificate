@@ -25,7 +25,7 @@ export default function InitPage() {
       const data = await res.json();
       if (res.ok) {
         setSuccess(true);
-        setTimeout(() => router.push("/login"), 2000);
+        setTimeout(() => router.push("/"), 2000);
       } else {
         setError(data.error || "Failed to create super admin");
       }

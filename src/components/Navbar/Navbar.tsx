@@ -77,12 +77,55 @@ const Navbar = () => {
     } catch (error) {
       console.error("Error clearing session:", error);
     }
-    // For Alchemy Account Kit, logout is handled differently
-    // The user will need to disconnect through the auth modal
+    // Attempt to fully logout from Alchemy Account Kit
+    try {
+      // Some Account Kit builds expose a logout on user or client
+      const maybeUserLogout = (user as any)?.logout;
+      if (typeof maybeUserLogout === "function") {
+        await maybeUserLogout();
+      }
+
+      const maybeClientLogout = (client as any)?.logout || (client as any)?.auth?.signOut;
+      if (typeof maybeClientLogout === "function") {
+        await maybeClientLogout();
+      }
+
+      const maybeGlobalLogout = (typeof window !== "undefined") && (window as any)?.alchemy?.auth?.logout;
+      if (typeof maybeGlobalLogout === "function") {
+        await maybeGlobalLogout();
+      }
+    } catch (err) {
+      console.warn("Alchemy logout attempt failed (non-fatal)", err);
+    }
+
+    // Best-effort cleanup of persisted SDK session if present
+    try {
+      if (typeof window !== "undefined") {
+        const ls = window.localStorage;
+        const ss = window.sessionStorage;
+        const clearMatching = (store: Storage | undefined) => {
+          if (!store) return;
+          const keys: string[] = [];
+          for (let i = 0; i < store.length; i++) {
+            const k = store.key(i);
+            if (k) keys.push(k);
+          }
+          const patterns = [/account-kit/i, /alchemy/i, /aak/i];
+          keys.forEach((k) => {
+            if (patterns.some((p) => p.test(k))) {
+              try { store.removeItem(k); } catch {}
+            }
+          });
+        };
+        clearMatching(ls);
+        clearMatching(ss);
+      }
+    } catch {}
+
     setDropdownOpen(false);
     // Redirect to home page after logout
     if (typeof window !== "undefined") {
-      window.location.href = "/";
+      window.location.replace("/");
     }
   };
 

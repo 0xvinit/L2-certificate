@@ -1,10 +1,10 @@
 "use client"
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 // @ts-ignore - provided by Alchemy Account Kit at runtime
-import { useUser, useAuthModal } from '@account-kit/react'
+import { useUser, useAuthModal, useSmartAccountClient } from '@account-kit/react'
 import Navbar from '../Navbar/Navbar'
 import certi1 from "@/app/assets/certi1.jpg"
 import certi2 from "@/app/assets/certi2.jpg"
@@ -16,9 +16,11 @@ import certi5 from "@/app/assets/certi5.jpg"
 const Homepage = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const user = useUser()
+  const { client } = useSmartAccountClient({})
   const { openAuthModal } = useAuthModal()
   const router = useRouter()
   const authenticated = user && user.email
+  const processedAuthRef = useRef(false)
 
   const images = [ certi1, certi2, certi3, certi4, certi5]
 
@@ -72,18 +74,71 @@ const Homepage = () => {
   }
 
   const handleOpenApp = async () => {
-    if (authenticated) {
-      // If user is already authenticated, navigate to dashboard
-      router.push('/admin/dashboard')
-    } else {
-      // If not authenticated, trigger Google login popup
-      try {
-        openAuthModal()
-      } catch (error) {
-        console.error('Login error:', error)
-      }
+    try {
+      // Open Alchemy modal; subsequent effect will complete auth+redirect
+      openAuthModal()
+    } catch (err) {
+      console.error('Open App failed:', err)
     }
   }
+
+  // Complete auth: once user/email or smart wallet address is available, set JWT and redirect
+  useEffect(() => {
+    (async () => {
+      if (processedAuthRef.current) return
+      const email = (user as any)?.email ? String((user as any).email).toLowerCase() : ""
+      const smartAddress = (client as any)?.account?.address as string | undefined
+      const walletAddress = smartAddress ? String(smartAddress).toLowerCase() : ""
+
+      if (!email && !walletAddress) return
+
+      processedAuthRef.current = true
+
+      try {
+        // Upsert wallet mapping when available
+        if (walletAddress) {
+          await fetch('/api/admin/wallet', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ walletAddress, chainId: null, walletType: 'alchemy' })
+          }).catch(() => {})
+        }
+
+        // Request JWT for allowlisted admins (email or wallet)
+        await fetch('/api/auth/alchemy', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, walletAddress })
+        }).catch(() => {})
+
+        // Give the browser a moment to persist the cookie before navigation
+        await new Promise(r => setTimeout(r, 300))
+
+        // Poll for cookie
+        let meOk = false
+        for (let i = 0; i < 12; i++) {
+          const meResp = await fetch('/api/auth/me', { credentials: 'include', cache: 'no-store' as any })
+          if (meResp.ok) { meOk = true; break }
+          await new Promise(r => setTimeout(r, 300))
+        }
+        if (meOk) {
+          if (typeof window !== 'undefined') {
+            // Full reload so middleware sees the cookie for sure
+            window.location.replace('/admin/dashboard')
+          } else {
+            router.push('/admin/dashboard')
+          }
+        } else {
+          router.push('/verify')
+        }
+      } catch (e) {
+        console.error('Finalize auth failed:', e)
+        router.push('/verify')
+      }
+    })()
+  }, [user, client, router])
 
   return (
     <div className="min-h-screen bg-white relative overflow-hidden">
@@ -166,7 +221,7 @@ const Homepage = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 xs:gap-6 justify-center items-center">
-              {/* <button
+              <button
                 onClick={handleOpenApp}
                 className="group bg-linear-to-r from-white/20 to-sky-100/20 hover:bg-white/20 text-white font-medium px-6 py-3 lg:px-10 lg:py-5 rounded-full cursor-pointer font-poppins text-base xs:text-lg transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-sky-200/50 border-2 border-white/20 backdrop-blur-sm relative z-10 overflow-hidden uppercase"
               >
@@ -178,19 +233,7 @@ const Homepage = () => {
                 </span>
                 <div className="absolute inset-0 bg-linear-to-r from-sky-400/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute inset-0 bg-linear-to-r from-white/20 via-transparent to-sky-200/20 opacity-0 group-hover:opacity-100 transition-all duration-500 transform -translate-x-full group-hover:translate-x-0"></div>
-              </button> */}
-               <Link href="/login">
-                <button className="group bg-linear-to-r from-white/20 to-sky-100/20 hover:bg-white/20 text-white font-medium px-6 py-3 lg:px-10 lg:py-5 rounded-full cursor-pointer font-poppins text-base xs:text-lg transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-sky-200/50 border-2 border-white/20 backdrop-blur-sm relative z-10 overflow-hidden uppercase">
-                  <span className="relative z-10 flex items-center gap-2">
-                  Open App
-                    <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </span>
-                  <div className="absolute inset-0 bg-linear-to-r from-sky-400/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute inset-0 bg-linear-to-r from-white/20 via-transparent to-sky-200/20 opacity-0 group-hover:opacity-100 transition-all duration-500 transform -translate-x-full group-hover:translate-x-0"></div>
-                </button>
-              </Link>
+              </button>
               <Link href="/verify">
                 <button className="group bg-linear-to-r from-white/20 to-sky-100/20 hover:bg-white/20 text-white font-medium px-6 py-3 lg:px-10 lg:py-5 rounded-full cursor-pointer font-poppins text-base xs:text-lg transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-sky-200/50 border-2 border-white/20 backdrop-blur-sm relative z-10 overflow-hidden uppercase">
                   <span className="relative z-10 flex items-center gap-2">
