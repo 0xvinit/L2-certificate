@@ -38,7 +38,7 @@ const WhatIs = () => {
             technology. Admins can create academic or training programs and
             issue certificates to students upon successful completion. Each
             certificate is stored on a{" "}
-            <span className="text-[#28aeec] font-semibold">Layer-2 chain</span>{" "}
+            <span className="text-[#28aeec] font-semibold">Arbitrum chain</span>{" "}
             with a unique hash acting as its{" "}
             <span className="text-[#28aeec] font-semibold">
               digital fingerprint
@@ -169,7 +169,7 @@ const WhatIs = () => {
                       <strong>Blockchain-Backed Certificates:</strong> Each
                       certificate is stored on a{" "}
                       <span className="text-[#28aeec] font-semibold">
-                        Layer-2 blockchain
+                      Arbitrum blockchain
                       </span>{" "}
                       for cost efficiency, immutability, and transparency.
                     </p>

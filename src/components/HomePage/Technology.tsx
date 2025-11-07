@@ -18,9 +18,9 @@ const Technology = () => {
     },
     {
       icon: FaLink,
-      title: "Store on L2 Blockchain",
+      title: "Store on Arbitrum Blockchain",
       description:
-        "The generated hash is stored securely on a Layer-2 blockchain — providing immutable and transparent record-keeping at low cost and high speed.",
+        "The generated hash is stored securely on a Arbitrum blockchain — providing immutable and transparent record-keeping at low cost and high speed.",
       color: "from-sky-400 to-blue-500",
       delay: 0.4,
     },
@@ -69,7 +69,7 @@ const Technology = () => {
               unique blockchain hash
             </span>
             , securely stored on an{" "}
-            <span className="font-semibold">L2 chain</span> to ensure cost
+            <span className="font-semibold">Arbitrum chain</span> to ensure cost
             efficiency and immutability. Anyone can verify a certificate’s
             authenticity simply by entering its hash — instantly confirming
             whether it’s{" "}
@@ -214,11 +214,11 @@ const Technology = () => {
             </div>
             <div>
               <h4 className="text-2xl font-bold text-gray-900 mb-3 font-cairo uppercase">
-                Built on Layer-2 Blockchain Infrastructure
+                Built on Arbitrum Blockchain Infrastructure
               </h4>
               <p className="text-gray-700 text-lg font-poppins leading-relaxed">
                 The platform uses a{" "}
-                <span className="text-[#28aeec] font-semibold">Layer-2</span>{" "}
+                <span className="text-[#28aeec] font-semibold">Arbitrum</span>{" "}
                 blockchain network to deliver{" "}
                 <span className="font-semibold">low-cost</span>,{" "}
                 <span className="font-semibold">fast</span>, and{" "}

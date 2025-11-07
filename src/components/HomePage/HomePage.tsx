@@ -28,7 +28,7 @@ const Homepage = () => {
   const slideContent = [
     {
       title: "Empowering Authenticity:<br/> Blockchain-Based Certificate Verification",
-      subtitle: "Issue and verify certificates with complete transparency. Built on L2 blockchain to ensure trust, security, and immutability."
+      subtitle: "Issue and verify certificates with complete transparency. Built on Arbitrum blockchain to ensure trust, security, and immutability."
     },
     {
       title: "Decentralized Certification:<br/> Smart, Secure, and Tamper-Proof",

@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     "Decentralized Verification",
     "Digital Credentials",
     "Web3 Education",
-    "L2 Blockchain",
+    "Arbitrum Blockchain",
     "Certificate Authentication",
     "Tamper-proof Certificates",
   ],

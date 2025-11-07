@@ -360,7 +360,7 @@ const WhyUs = () => {
                 80%
               </div>
               <p className="text-white/90 text-lg font-poppins font-medium">
-                Cost Efficiency (L2)
+                Cost Efficiency (Arbitrum)
               </p>
             </div>
             <div className="space-y-2">
@@ -373,47 +373,6 @@ const WhyUs = () => {
             </div>
           </div>
         </motion.div>
-
-        {/* Bottom CTA */}
-        {/* <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, delay: 0.4 }}
-          className="mt-16 bg-linear-to-br from-sky-50/80 to-blue-50/80 backdrop-blur-xl border-2 border-[#28aeec]/40 rounded-3xl p-8 lg:p-12 shadow-2xl text-center"
-        >
-          <h3 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4 font-cairo uppercase">
-            Join the Future of Certificate Verification
-          </h3>
-          <p className="text-xl text-gray-700 font-poppins mb-8 max-w-3xl mx-auto">
-            Empower your institution with decentralized, tamper-proof certificate
-            management — create, issue, and verify digital credentials securely
-            on-chain.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="group bg-linear-to-r from-[#28aeec] to-sky-400 text-white font-bold px-8 py-4 rounded-full transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-sky-200/50 font-poppins text-lg uppercase">
-              <span className="flex items-center gap-2 justify-center">
-                Get Started
-                <svg
-                  className="w-5 h-5 transition-transform group-hover:translate-x-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 7l5 5m0 0l-5 5m5-5H6"
-                  />
-                </svg>
-              </span>
-            </button>
-            <button className="group bg-white text-[#28aeec] font-bold px-8 py-4 rounded-full border-2 border-[#28aeec] transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:bg-sky-50 font-poppins text-lg uppercase">
-              Schedule Demo
-            </button>
-          </div>
-        </motion.div> */}
       </div>
     </section>
   );

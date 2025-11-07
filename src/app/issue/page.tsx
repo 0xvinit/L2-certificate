@@ -882,75 +882,13 @@ export default function IssuePage() {
                 <div className="mt-5 space-y-4">
                   <div className="rounded-xl bg-white/60 border-2 border-emerald-100 p-4">
                     <p className="text-sm text-gray-600 font-cairo font-bold uppercase mb-2">
-                      Hash
+                      Certificate Hash
                     </p>
                     <code className="text-sm text-gray-900 font-mono break-all">
                       {result.hash}
                     </code>
                   </div>
-                  <div className="rounded-xl bg-white/60 border-2 border-emerald-100 p-4">
-                    <p className="text-sm text-gray-600 font-cairo font-bold uppercase mb-2">
-                      Transaction
-                    </p>
-                    <code className="text-sm text-gray-900 font-mono break-all">
-                      {result.txHash}
-                    </code>
-                  </div>
-                  {result.userOpHash && (
-                    <div className="rounded-lg bg-white/40 p-3">
-                      <p className="text-xs text-slate-500 font-medium">UserOperation Hash</p>
-                      <div className="flex items-center gap-2 flex-wrap mt-1">
-                        <code className="text-xs text-slate-700 font-mono break-all">{result.userOpHash}</code>
-                        <a
-                          href={`https://jiffyscan.xyz/userOpHash/${result.userOpHash}?network=arbitrum-sepolia`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium underline"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                          View on Jiffyscan
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                  {result.userOpDetails && (
-                    <div className="rounded-lg bg-white/40 p-3">
-                      <p className="text-xs text-slate-500 font-medium mb-2">Gas Sponsorship Details</p>
-                      <div className="space-y-1.5 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-slate-600">Sender (Smart Account):</span>
-                          <code className="text-slate-700 font-mono">{result.userOpDetails.sender?.slice(0, 10)}...{result.userOpDetails.sender?.slice(-8)}</code>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-600">Paymaster:</span>
-                          <span className={result.userOpDetails.paymaster ? "text-emerald-600 font-medium" : "text-slate-500"}>
-                            {result.userOpDetails.paymaster 
-                              ? `${result.userOpDetails.paymaster.slice(0, 10)}...${result.userOpDetails.paymaster.slice(-8)} (Gas Sponsored)`
-                              : "None (Self-paid)"}
-                          </span>
-                        </div>
-                        {result.userOpDetails.beneficiary && (
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Beneficiary (Bundler):</span>
-                            <code className="text-slate-700 font-mono">{result.userOpDetails.beneficiary.slice(0, 10)}...{result.userOpDetails.beneficiary.slice(-8)}</code>
-                          </div>
-                        )}
-                        {result.userOpDetails.gasUsed && (
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Gas Used:</span>
-                            <span className="text-slate-700 font-mono">{BigInt(result.userOpDetails.gasUsed).toString()}</span>
-                          </div>
-                        )}
-                        <div className="mt-2 pt-2 border-t border-slate-200 text-xs text-slate-500">
-                          <p className="font-medium mb-1">💡 What are these?</p>
-                          <ul className="list-disc list-inside space-y-0.5 ml-1">
-                            <li><strong>Paymaster:</strong> Pays gas fees on your behalf (Alchemy)</li>
-                            <li><strong>Beneficiary:</strong> Receives transaction fees (Bundler)</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  
                   {result.pdfBase64 && (
                     <a
                       download={`certificate-${studentId || "cert"}.pdf`}

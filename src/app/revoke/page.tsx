@@ -229,7 +229,7 @@ export default function RevokePage() {
                 type="button"
                 onClick={handleVerifyHash}
                 disabled={loading || !hash.trim()}
-                className="h-14 px-6 rounded-xl bg-linear-to-r from-[#28aeec] to-sky-400 text-white font-bold transition-all duration-300 hover:shadow-xl hover:shadow-sky-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-poppins uppercase hover:scale-105"
+                className="h-14 px-6 cursor-pointer rounded-xl bg-linear-to-r from-[#28aeec] to-sky-400 text-white font-bold transition-all duration-300 hover:shadow-xl hover:shadow-sky-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-poppins uppercase hover:scale-105"
               >
                 <Search className="h-5 w-5" />
                 Verify
@@ -436,7 +436,7 @@ export default function RevokePage() {
                 <code className="block font-mono text-sm break-all text-gray-900">
                   {hash || certificateData?.hash || "N/A"}
                 </code>
-                {certificateData.certificate.txHash && (
+                {/* {certificateData.certificate.txHash && (
                   <div className="mt-4 flex items-center gap-2">
                     <ExternalLink className="h-4 w-4 text-[#28aeec]" />
                     <a
@@ -448,7 +448,7 @@ export default function RevokePage() {
                       View Original Issuance on Polygonscan
                     </a>
                   </div>
-                )}
+                )} */}
               </div>
             </div>
           )}
