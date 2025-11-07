@@ -22,7 +22,10 @@ export async function POST(req: NextRequest) {
       $set: {
         chainId: chainId || null,
         walletType: walletType || "privy",
-        lastActiveAt: now
+        lastActiveAt: now,
+        // New flags for approval flow
+        pending: true, // default pending until super admin approves on-chain
+        authorizedOnChain: false
       },
       $setOnInsert: {
         connectedAt: now
@@ -32,9 +35,9 @@ export async function POST(req: NextRequest) {
   );
   
   // Also update admin record with wallet address
-  const adminCol = await collection("admins");
-  await adminCol.updateOne(
-    { adminId: session.adminId },
+  const allowCol = await collection("adminAllowlist");
+  await allowCol.updateOne(
+    { email: session.adminId.toLowerCase() },
     { $set: { walletAddress: walletAddress.toLowerCase(), updatedAt: now } }
   );
   
@@ -51,13 +54,15 @@ export async function GET(req: NextRequest) {
   const col = await collection("walletConnections");
   const connections = await col.find({ adminId: session.adminId }).sort({ lastActiveAt: -1 }).toArray();
   
-  return new Response(JSON.stringify(connections.map(c => ({
+  return new Response(JSON.stringify(connections.map((c: any) => ({
     _id: String(c._id),
     walletAddress: c.walletAddress,
     chainId: c.chainId,
     walletType: c.walletType,
     connectedAt: c.connectedAt,
-    lastActiveAt: c.lastActiveAt
+    lastActiveAt: c.lastActiveAt,
+    pending: !!c.pending,
+    authorizedOnChain: !!c.authorizedOnChain
   }))), { headers: { "content-type": "application/json" } });
 }
 

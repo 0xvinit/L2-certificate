@@ -1,4 +1,4 @@
-export const CERTIFICATE_REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_CERT_REGISTRY_ADDRESS as string;
+export const NEXT_PUBLIC_CERT_REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_CERT_REGISTRY_ADDRESS as string;
 
 export const CERTIFICATE_REGISTRY_ABI = [
   {
@@ -55,6 +55,37 @@ export const CERTIFICATE_REGISTRY_ABI = [
         "name": "",
         "type": "tuple"
       }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "newIssuer", "type": "address" }
+    ],
+    "name": "authorizeIssuer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "addr", "type": "address" }
+    ],
+    "name": "isAuthorizedIssuer",
+    "outputs": [
+      { "internalType": "bool", "name": "", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "", "type": "address" }
+    ],
+    "name": "authorizedIssuers",
+    "outputs": [
+      { "internalType": "bool", "name": "", "type": "bool" }
     ],
     "stateMutability": "view",
     "type": "function"

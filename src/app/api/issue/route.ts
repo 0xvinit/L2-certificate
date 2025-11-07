@@ -1,20 +1,25 @@
 import { NextRequest } from "next/server";
 import { ethers } from "ethers";
-import { CERTIFICATE_REGISTRY_ABI, CERTIFICATE_REGISTRY_ADDRESS } from "../../../../src/lib/contract";
+import { CERTIFICATE_REGISTRY_ABI, NEXT_PUBLIC_CERT_REGISTRY_ADDRESS } from "../../../../src/lib/contract";
 import QRCode from "qrcode";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import crypto from "crypto";
+import { verifySession } from "../../../lib/auth";
+import { collection } from "../../../lib/db";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    const adminKey = req.headers.get("x-admin-key");
-    if (!process.env.ADMIN_KEY || adminKey !== process.env.ADMIN_KEY) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-    }
+    // Require authenticated admin session (email allowlist based)
+    const token = req.cookies.get("token")?.value;
+    const session = token ? verifySession(token) : null;
+    if (!session) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    const allowCol = await collection("adminAllowlist");
+    const me = await allowCol.findOne({ email: String(session.adminId).toLowerCase(), status: { $in: ["active", "pending"] } }) as any;
+    if (!me) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
 
-    if (!process.env.RPC_URL || !process.env.ISSUER_PRIVATE_KEY || !CERTIFICATE_REGISTRY_ADDRESS) {
+    if (!process.env.ARBISCAN_API_KEY || !process.env.ISSUER_PRIVATE_KEY || !NEXT_PUBLIC_CERT_REGISTRY_ADDRESS) {
       return new Response(JSON.stringify({ error: "Server misconfigured" }), { status: 500 });
     }
 
@@ -57,9 +62,9 @@ export async function POST(req: NextRequest) {
     const pdfBytes = await pdfDoc.save();
 
     // 4) On-chain register with metadataURI placeholder (you can swap with IPFS later)
-    const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+    const provider = new ethers.JsonRpcProvider(process.env.ARBISCAN_API_KEY);
     const wallet = new ethers.Wallet(process.env.ISSUER_PRIVATE_KEY, provider);
-    const contract = new ethers.Contract(CERTIFICATE_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, wallet);
+    const contract = new ethers.Contract(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, wallet);
 
     const metadataURI = ""; // Optional: upload pdfBytes to IPFS and use ipfs://CID
     const tx = await contract.register(hashBytes32, metadataURI);

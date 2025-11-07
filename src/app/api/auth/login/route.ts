@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   if (!adminId || !password) return new Response(JSON.stringify({ error: "Missing" }), { status: 400 });
   
   const col = await collection("admins");
-  const admin = await col.findOne({ adminId: adminId.toLowerCase() });
+  const admin = await col.findOne({ adminId: adminId.toLowerCase() }) as any;
   if (!admin) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   
   const ok = await verifyPassword(password, admin.passwordHash);

@@ -75,13 +75,13 @@ export async function POST(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
   const session = token ? verifySession(token) : null;
   if (!session) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-  const adminsCol = await collection("admins");
-  const me = await adminsCol.findOne({ adminId: session.adminId });
+  const allowCol = await collection("adminAllowlist");
+  const me = await allowCol.findOne({ email: String(session.adminId).toLowerCase(), status: { $in: ["active", "pending"] } }) as any;
   if (!me) return new Response(JSON.stringify({ error: "Admin not found" }), { status: 404 });
   const programsCol = await collection("programs");
-  const program = await programsCol.findOne({ _id: new (await import("mongodb")).ObjectId(programId) });
+  const program = await programsCol.findOne({ _id: new (await import("mongodb")).ObjectId(programId) }) as any;
   if (!program) return new Response(JSON.stringify({ error: "Program not found" }), { status: 404 });
-  const isOwner = String(program.adminId).toLowerCase() === String(me.adminId).toLowerCase();
+  const isOwner = String(program.adminId).toLowerCase() === String(session.adminId).toLowerCase();
   if (!me.isSuperAdmin && !isOwner) {
     return new Response(JSON.stringify({ error: "Forbidden: cannot issue for this program" }), { status: 403 });
   }

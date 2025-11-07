@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+// @ts-ignore - provided by Alchemy Account Kit at runtime
+import { useSmartAccountClient, useUser, useAuthModal, useSignerStatus } from "@account-kit/react";
 import { IoWallet, IoCopy, IoLogOut, IoChevronDown } from "react-icons/io5";
 
 const Navbar = () => {
@@ -11,11 +12,16 @@ const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Privy wallet integration
-  const { ready, authenticated, login, logout } = usePrivy();
-  const { wallets } = useWallets();
-  const address = wallets?.[0]?.address || "";
-  const isConnected = Boolean(address);
+  // Alchemy wallet integration
+  const { client } = useSmartAccountClient({});
+  const user = useUser();
+  const { openAuthModal } = useAuthModal();
+  const signerStatus = useSignerStatus();
+  const smartAddress = (client as any)?.account?.address as string | undefined;
+  const address = smartAddress || "";
+  const isConnected = Boolean((user && user.email) || address);
+  const isAuthenticated = user && user.email;
+  const processedAuthRef = useRef<string | null>(null);
 
   const isHomePage = pathname === "/";
 
@@ -43,23 +49,143 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Clear session cookie when user becomes unauthenticated
+  useEffect(() => {
+    if (!signerStatus.isInitializing && !isAuthenticated) {
+      // User logged out - clear session cookie
+      fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      }).catch(() => {});
+      processedAuthRef.current = null;
+    }
+  }, [isAuthenticated, signerStatus.isInitializing]);
+
+  // Ensure admin JWT cookie is created no matter which page triggers Alchemy login
+  useEffect(() => {
+    (async () => {
+      const email = (user as any)?.email ? String((user as any).email).toLowerCase() : "";
+      const smart = (client as any)?.account?.address as string | undefined;
+      const walletAddress = smart ? String(smart).toLowerCase() : "";
+
+      if (!email && !walletAddress) return;
+      if (processedAuthRef.current === email || (!email && processedAuthRef.current === walletAddress)) return;
+
+      try {
+        // Upsert wallet mapping if available
+        if (walletAddress) {
+          await fetch("/api/admin/wallet", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ walletAddress, chainId: null, walletType: "alchemy" })
+          }).catch(() => {});
+        }
+
+        // Establish server session (JWT) for allowlisted admins
+        const resp = await fetch("/api/auth/alchemy", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, walletAddress })
+        });
+
+        if (resp.ok) {
+          processedAuthRef.current = email || walletAddress || "processed";
+          // Give the browser a moment to persist cookie
+          await new Promise(r => setTimeout(r, 200));
+          // Verify cookie and redirect if on public pages
+          let meOk = false;
+          for (let i = 0; i < 3; i++) {
+            const meResp = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" as any });
+            if (meResp.ok) { meOk = true; break; }
+            await new Promise(r => setTimeout(r, 200));
+          }
+          if (meOk) {
+            const onPublic = !pathname.startsWith("/admin");
+            if (onPublic && typeof window !== "undefined") {
+              window.location.replace("/admin/dashboard");
+            }
+          }
+        }
+      } catch {}
+    })();
+  }, [user, client]);
+
   const toggleDropdown = () => {
     setDropdownOpen(!dropdownOpen);
   };
 
   const handleConnectWallet = () => {
-    login();
+    openAuthModal();
   };
 
-  const handleDisconnect = () => {
-    logout();
+  const handleDisconnect = async () => {
+    try {
+      // First clear the session cookie
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Error clearing session:", error);
+    }
+    // Attempt to fully logout from Alchemy Account Kit
+    try {
+      // Some Account Kit builds expose a logout on user or client
+      const maybeUserLogout = (user as any)?.logout;
+      if (typeof maybeUserLogout === "function") {
+        await maybeUserLogout();
+      }
+
+      const maybeClientLogout = (client as any)?.logout || (client as any)?.auth?.signOut;
+      if (typeof maybeClientLogout === "function") {
+        await maybeClientLogout();
+      }
+
+      const maybeGlobalLogout = (typeof window !== "undefined") && (window as any)?.alchemy?.auth?.logout;
+      if (typeof maybeGlobalLogout === "function") {
+        await maybeGlobalLogout();
+      }
+    } catch (err) {
+      console.warn("Alchemy logout attempt failed (non-fatal)", err);
+    }
+
+    // Best-effort cleanup of persisted SDK session if present
+    try {
+      if (typeof window !== "undefined") {
+        const ls = window.localStorage;
+        const ss = window.sessionStorage;
+        const clearMatching = (store: Storage | undefined) => {
+          if (!store) return;
+          const keys: string[] = [];
+          for (let i = 0; i < store.length; i++) {
+            const k = store.key(i);
+            if (k) keys.push(k);
+          }
+          const patterns = [/account-kit/i, /alchemy/i, /aak/i];
+          keys.forEach((k) => {
+            if (patterns.some((p) => p.test(k))) {
+              try { store.removeItem(k); } catch {}
+            }
+          });
+        };
+        clearMatching(ls);
+        clearMatching(ss);
+      }
+    } catch {}
+
     setDropdownOpen(false);
+    // Redirect to home page after logout
+    if (typeof window !== "undefined") {
+      window.location.replace("/");
+    }
   };
 
   const copyAddress = () => {
-    if (address) {
-      navigator.clipboard.writeText(address);
-      // You can add a toast notification here if needed
+    const toCopy = (user as any)?.email || address;
+    if (toCopy) {
+      navigator.clipboard.writeText(String(toCopy));
     }
   };
 
@@ -67,23 +193,27 @@ const Navbar = () => {
     <>
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          !isHomePage || isScrolled ? "bg-black/20 backdrop-blur-md" : ""
+          !isHomePage || isScrolled ? "bg-[#325164]/60 backdrop-blur-md" : ""
         }`}
       >
         <div className="mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center">
-              <Link href="/" className="flex items-center space-x-2 group">
-                <span className="bg-linear-to-r from-white via-sky-200 to-sky-400 bg-clip-text text-transparent text-4xl font-cairo">
-                  ChainGrad
+              <Link
+                href="/"
+                className="flex items-center space-x-2 group font-major-mono"
+              >
+                {/* bg-linear-to-r from-white via-sky-200 to-sky-400 bg-clip-text text-transparent */}
+                <span className="bg-linear-to-r from-white via-sky-200 to-sky-400 bg-clip-text text-transparent text-4xl font-bold tracking-tighter">
+                  Patram
                 </span>
               </Link>
             </div>
 
             {/* Right Side Buttons */}
             <div className="flex items-center space-x-3 font-poppins">
-              {ready && authenticated && isConnected ? (
+              {!signerStatus.isInitializing && isAuthenticated && isConnected ? (
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={toggleDropdown}
@@ -96,11 +226,9 @@ const Navbar = () => {
         border border-[#28aeec]/40 hover:border-[#28aeec]/80 uppercase"
                   >
                     <span className="relative z-10 flex items-center gap-2.5">
-                      <IoWallet className="w-5 h-5 text-white " />
+                      {/* <IoWallet className="w-5 h-5 text-white " /> */}
                       <span className="hidden sm:block">
-                        {address
-                          ? `${address.slice(0, 6)}...${address.slice(-4)}`
-                          : "Connected"}
+                        {(user as any)?.email || (address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "Connected")}
                       </span>
                       <IoChevronDown
                         className={`w-4 h-4 transition-transform duration-300 ${
@@ -132,10 +260,10 @@ const Navbar = () => {
         shadow-[#28aeec]/20"
                     >
                       <div className="p-4">
-                        {/* Address Section */}
+                        {/* Account Section */}
                         <div className="mb-4">
                           <p className="text-[#28aeec] text-sm font-medium mb-2 font-poppins">
-                            Wallet Address
+                            Email
                           </p>
                           <div
                             className="flex items-center justify-between
@@ -144,16 +272,12 @@ const Navbar = () => {
               hover:bg-[#28aeec]/20 hover:border-[#28aeec]/50 transition-all duration-300"
                           >
                             <span className="text-[#28aeec] font-mono text-sm font-medium">
-                              {address
-                                ? `${address.slice(0, 8)}...${address.slice(
-                                    -8
-                                  )}`
-                                : ""}
+                              {(user as any)?.email || (address ? `${address.slice(0, 8)}...${address.slice(-8)}` : "")}
                             </span>
                             <button
                               onClick={copyAddress}
                               className="cursor-pointer p-2 hover:bg-[#28aeec]/30 rounded-lg transition-all duration-300 group"
-                              title="Copy Address"
+                              title="Copy"
                             >
                               <IoCopy className="w-4 h-4 text-[#28aeec] group-hover:text-[#28aeec] group-hover:scale-110" />
                             </button>
@@ -169,7 +293,7 @@ const Navbar = () => {
               border border-[#28aeec]/40 hover:border-[#28aeec]/80 hover:shadow-lg hover:shadow-[#28aeec]/30 cursor-pointer font-poppins"
                         >
                           <IoLogOut className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
-                          <span className="font-medium">Disconnect Wallet</span>
+                          <span className="font-medium">Logout</span>
                         </button>
                       </div>
                     </div>
@@ -187,8 +311,8 @@ const Navbar = () => {
       border border-[#28aeec]/40 hover:border-[#28aeec]/80 uppercase"
                 >
                   <span className="relative z-10 flex items-center gap-2.5">
-                    <IoWallet className="w-5 h-5 transition-all duration-300 group-hover:rotate-12 group-hover:scale-110" />
-                    <span className="hidden sm:block">Connect Wallet</span>
+                    {/* <IoWallet className="w-5 h-5 transition-all duration-300 group-hover:rotate-12 group-hover:scale-110" /> */}
+                    <span className="hidden sm:block">Login</span>
                   </span>
 
                   {/* Shine sweep */}

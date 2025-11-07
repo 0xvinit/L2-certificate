@@ -20,7 +20,7 @@ export async function generatePDFFromHTML(
   }
 ): Promise<Blob | void> {
   const html2pdf = await getHtml2Pdf();
-  const opt = {
+  const opt: any= {
     margin: 0,
     filename: options?.filename || "certificate.pdf",
     image: { type: "jpeg", quality: 0.98 },

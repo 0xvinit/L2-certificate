@@ -1,9 +1,11 @@
 @import "tailwindcss";
+@config '../../tailwind.config.ts';
 
 :root {
   --background: #FFF; /* main light */
   --foreground: #000000;
 }
+
 
 @theme inline {
   --color-background: var(--background);
@@ -11,12 +13,23 @@
   --font-saira: var(--font-saira);
   --font-poppins: var(--font-poppins);
   --font-cairo: var(--font-cairo);
+  --font-major-mono: var(--font-major-mono);
+  --breakpoint-xs: 400px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #FFF;
-    --foreground: #000;
+    --background: #e8ecf2;
+    --foreground: #0e1218;
+    --muted: #131923;
+    --muted-foreground: #c8d7ea;
+    --primary: #91C8E4;
+    --primary-foreground: #0a0d12;
+    --accent: #749BC2;
+    --ring: #91C8E4;
+    --border: #1f2937;
+    /* --background: #FFF;
+    --foreground: #000; */
   }
 }
 
