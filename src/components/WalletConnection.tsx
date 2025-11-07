@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+// @ts-ignore - provided by Alchemy Account Kit at runtime
+import { useSmartAccountClient, useUser, useAuthModal, useSignerStatus } from "@account-kit/react";
 import { ethers } from "ethers";
 import {
   CERTIFICATE_REGISTRY_ABI,
@@ -16,8 +17,10 @@ export default function WalletConnection({
   showOnChainIssuer = false,
   showSwitchChain = false,
 }: WalletConnectionProps = {}) {
-  const { login, logout, authenticated, ready } = usePrivy();
-  const { wallets } = useWallets();
+  const { client } = useSmartAccountClient({});
+  const user = useUser();
+  const { openAuthModal } = useAuthModal();
+  const signerStatus = useSignerStatus();
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [chainId, setChainId] = useState<number | null>(null);
   const [onchainIssuer, setOnchainIssuer] = useState<string>("");
@@ -28,106 +31,91 @@ export default function WalletConnection({
   const savedRef = useRef<string>(""); // Track which wallet address we've saved
 
   const switchToAmoy = async () => {
-    const w = wallets[0];
-    if (!w) return;
-    const eth = await w.getEthereumProvider();
+    if (!client) return;
     try {
-      await (eth as any).request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: "0x66EEE" }], // 421614 
-      });
-    } catch (switchError: any) {
-      if (
-        switchError?.code === 4902 ||
-        (switchError?.data &&
-          String(switchError.data).includes("Unrecognized chain ID"))
-      ) {
-        await (eth as any).request({
-          method: "wallet_addEthereumChain",
-          params: [{
-            chainId: "0x66EEE",
-            chainName: "Arbitrum Sepolia",
-            nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-            rpcUrls: ["https://sepolia-rollup.arbitrum.io/rpc"],
-            blockExplorerUrls: ["https://sepolia.arbiscan.io"],
-          }],
-        });
-      }
+      // Get provider from client
+      const provider = client.getPublicClient();
+      if (!provider) return;
+      
+      // For Alchemy Account Kit, chain switching is handled differently
+      // The client is already configured for arbitrumSepolia in config.ts
+      const network = await provider.getChainId();
+      setChainId(Number(network));
+    } catch (err) {
+      console.error("Error switching chain:", err);
     }
-    const provider = new ethers.BrowserProvider(eth as any);
-    const net = await provider.getNetwork();
-    setChainId(Number(net.chainId));
   };
 
   useEffect(() => {
     (async () => {
-      if (!ready) {
+      if (signerStatus.isInitializing) {
         setLoading(true);
         return;
       }
 
       setLoading(false);
 
-      if (authenticated && wallets.length > 0) {
-        const w = wallets[0];
-        const addr = w.address;
-        setWalletAddress(addr);
-        // Detect wallet type; only treat as Privy embedded if client reports so
-        const clientType =
-          (w as any)?.walletClientType || (w as any)?.type || "";
-        setIsPrivyWallet(String(clientType).toLowerCase() === "privy");
+      const isAuthenticated = user && user.email;
+      const smartAddress = (client as any)?.account?.address as string | undefined;
+
+      if (isAuthenticated && smartAddress) {
+        setWalletAddress(smartAddress);
+        setIsPrivyWallet(false); // Alchemy wallet, not Privy
 
         try {
-          const eth = await w.getEthereumProvider();
-          const provider = new ethers.BrowserProvider(eth as any);
-          const network = await provider.getNetwork();
-          const chain = Number(network.chainId);
-          setChainId(chain);
+          // Get provider from client
+          const publicClient = client.getPublicClient();
+          if (publicClient) {
+            const chain = await publicClient.getChainId();
+            setChainId(Number(chain));
 
-          // Get on-chain issuer if needed
-          if (showOnChainIssuer && NEXT_PUBLIC_CERT_REGISTRY_ADDRESS && (String(clientType).toLowerCase() === "privy")) {
-            try {
-              const contractRO = new ethers.Contract(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, provider);
-              const iss: string = await contractRO.issuer();
-              setOnchainIssuer(iss);
-            } catch {}
-          } else {
-            setOnchainIssuer("");
-          }
+            // Get on-chain issuer if needed
+            if (showOnChainIssuer && NEXT_PUBLIC_CERT_REGISTRY_ADDRESS) {
+              try {
+                const provider = new ethers.JsonRpcProvider((publicClient as any).transport?.url || "https://sepolia-rollup.arbitrum.io/rpc");
+                const contractRO = new ethers.Contract(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, provider);
+                const iss: string = await contractRO.issuer();
+                setOnchainIssuer(iss);
+              } catch {}
+            } else {
+              setOnchainIssuer("");
+            }
 
-          // Auto-save wallet connection (only if not already saved for this address)
-          if (savedRef.current !== addr && !saving) {
-            setSaving(true);
-            try {
-              await fetch("/api/admin/wallet", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({
-                  walletAddress: addr,
-                  chainId: chain,
-                  walletType: "privy",
-                }),
-              });
-              savedRef.current = addr;
-              setSaved(true);
-              setTimeout(() => setSaved(false), 3000);
-            } catch {}
-            setSaving(false);
+            // Auto-save wallet connection (only if not already saved for this address)
+            if (savedRef.current !== smartAddress && !saving) {
+              setSaving(true);
+              try {
+                await fetch("/api/admin/wallet", {
+                  method: "POST",
+                  headers: { "content-type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({
+                    walletAddress: smartAddress,
+                    chainId: Number(chain),
+                    walletType: "alchemy",
+                  }),
+                });
+                savedRef.current = smartAddress;
+                setSaved(true);
+                setTimeout(() => setSaved(false), 3000);
+              } catch {}
+              setSaving(false);
+            }
           }
         } catch (err) {
           console.error("Error loading wallet:", err);
         }
-      } else if (authenticated && wallets.length === 0) {
-        // Authenticated but no wallet yet - wait a bit for wallets to load
+      } else if (isAuthenticated && !smartAddress) {
+        // Authenticated but no wallet yet - wait a bit for wallet to load
         setTimeout(() => {
-          if (wallets.length === 0) {
+          const currentAddress = (client as any)?.account?.address as string | undefined;
+          if (!currentAddress) {
             setWalletAddress("");
             setChainId(null);
             setOnchainIssuer("");
           }
         }, 1000);
-      } else if (!authenticated) {
+      } else if (!isAuthenticated) {
         // Reset when not authenticated
         savedRef.current = "";
         setWalletAddress("");
@@ -135,13 +123,13 @@ export default function WalletConnection({
         setOnchainIssuer("");
       }
     })();
-  }, [authenticated, wallets, ready, saving, showOnChainIssuer]);
+  }, [user, client, signerStatus.isInitializing, saving, showOnChainIssuer]);
 
   const handleConnect = async () => {
-    await login();
+    openAuthModal();
   };
 
-  if (!ready) {
+  if (signerStatus.isInitializing) {
     return (
       <div className="p-6 bg-linear-to-br from-sky-50 to-sky-100/60 rounded-2xl border-2 border-sky-200">
         <div className="flex items-center gap-3">

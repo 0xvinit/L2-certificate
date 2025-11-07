@@ -77,6 +77,32 @@ export default function IssuePage() {
     } catch {}
   };
 
+  // Helper function to normalize hash to exactly bytes32 format (0x + 64 hex chars)
+  const normalizeHashToBytes32 = (hash: string): string => {
+    let normalized = hash.trim();
+    
+    // Remove 0x prefix if present
+    if (normalized.startsWith("0x")) {
+      normalized = normalized.slice(2);
+    }
+    
+    // Ensure exactly 64 hex characters (32 bytes)
+    if (normalized.length > 64) {
+      // If too long, truncate to 64 chars
+      normalized = normalized.slice(0, 64);
+    } else if (normalized.length < 64) {
+      // If too short, pad with zeros
+      normalized = normalized.padStart(64, '0');
+    }
+    
+    // Validate it's valid hex
+    if (!/^[0-9a-fA-F]{64}$/.test(normalized)) {
+      throw new Error(`Invalid hex string: ${normalized}`);
+    }
+    
+    return `0x${normalized}`;
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -232,7 +258,10 @@ export default function IssuePage() {
         returnBlob: true,
       })) as Blob;
       const tempPdfBytes = new Uint8Array(await tempPdfBlob.arrayBuffer());
-      const tempHash = await sha256HexBytes(tempPdfBytes);
+      let tempHash = await sha256HexBytes(tempPdfBytes);
+      
+      // Normalize hash to ensure exactly 64 hex characters (32 bytes)
+      tempHash = normalizeHashToBytes32(tempHash);
 
       const verifyUrl = `${baseUrl}/verify?h=${tempHash}`;
       await addQRCodeToElement(certificateElement, verifyUrl);
@@ -264,9 +293,21 @@ export default function IssuePage() {
       }
 
       // Ensure hash is in proper bytes32 format (0x + 64 hex chars)
-      const hashBytes32 = hash.startsWith("0x") ? hash : `0x${hash}`
-      if (hashBytes32.length !== 66) { // 0x + 64 hex chars = 66 total
-        throw new Error(`Invalid hash format. Expected bytes32 (66 chars), got ${hashBytes32.length} chars`)
+      // Use the normalize function to ensure exactly 64 hex characters
+      let hashBytes32: string;
+      try {
+        hashBytes32 = normalizeHashToBytes32(hash);
+        console.log("Normalized hashBytes32:", hashBytes32, "length:", hashBytes32.length);
+        
+        // Validate using ethers to ensure it's a proper hex string
+        hashBytes32 = ethers.hexlify(hashBytes32);
+        
+        // Final validation - must be exactly 66 characters (0x + 64 hex)
+        if (hashBytes32.length !== 66) {
+          throw new Error(`Hash must be exactly 66 characters (0x + 64 hex), got ${hashBytes32.length}: ${hashBytes32}`)
+        }
+      } catch (err: any) {
+        throw new Error(`Invalid hash format: ${err?.message || err}. Original hash: ${hash}`)
       }
 
       const existing = await contractRO.getCertificate(hashBytes32)
@@ -330,6 +371,15 @@ export default function IssuePage() {
       // Create contract interface for encoding transaction data
       const contractInterface = new ethers.Interface(CERTIFICATE_REGISTRY_ABI)
       console.log("contractInterface", contractInterface)
+      console.log("hashBytes32 before encoding:", hashBytes32, "length:", hashBytes32.length)
+      console.log("metadataURI:", metadataURI)
+      
+      // Ensure hashBytes32 is exactly bytes32 format for encoding
+      // Double-check it's exactly 66 characters
+      if (hashBytes32.length !== 66) {
+        throw new Error(`Hash must be exactly 66 characters before encoding, got ${hashBytes32.length}: ${hashBytes32}`)
+      }
+      
       const txData = contractInterface.encodeFunctionData("register", [hashBytes32, metadataURI])
       console.log("txData", txData, NEXT_PUBLIC_CERT_REGISTRY_ADDRESS)
       
@@ -434,7 +484,7 @@ export default function IssuePage() {
           
           // Wait for UserOperation receipt with polling
           let attempts = 0
-          const maxAttempts = 60 // Wait up to 60 seconds (1 second intervals)
+          const maxAttempts = 3 // Wait up to 60 seconds (1 second intervals)
           
           while (!receipt && attempts < maxAttempts) {
             try {

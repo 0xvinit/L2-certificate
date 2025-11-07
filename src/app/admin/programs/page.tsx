@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import type React from "react";
 
 import { useRouter } from "next/navigation"
-import { useWallets } from "@privy-io/react-auth"
+// @ts-ignore - provided by Alchemy Account Kit at runtime
+import { useSmartAccountClient } from "@account-kit/react"
 import WalletConnection from "@/components/WalletConnection"
 import AppShell from "@/components/AppShell"
 import { Plus, Settings2, ToggleRight, ToggleLeft, AlertCircle } from "lucide-react"
@@ -22,7 +23,8 @@ type Program = {
 
 export default function ProgramsPage() {
   const router = useRouter()
-  const { wallets } = useWallets()
+  const { client } = useSmartAccountClient({})
+  const smartAddress = (client as any)?.account?.address as string | undefined;
   const [admin, setAdmin] = useState<any>(null)
   const [items, setItems] = useState<Program[]>([])
   const [name, setName] = useState("")
@@ -70,7 +72,7 @@ export default function ProgramsPage() {
       }
 
       // Get wallet address from connected wallets or use empty string
-      const walletAddress = wallets.length > 0 ? wallets[0].address : (admin.walletAddress || "")
+      const walletAddress = smartAddress || (admin.walletAddress || "")
 
       const res = await fetch("/api/programs", {
         method: "POST",

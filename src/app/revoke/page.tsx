@@ -4,9 +4,8 @@ import { ethers } from "ethers";
 import { CERTIFICATE_REGISTRY_ABI, NEXT_PUBLIC_CERT_REGISTRY_ADDRESS } from "../../lib/contract";
 import AppShell from "@/components/AppShell";
 import WalletConnection from "@/components/WalletConnection";
-import { useWallets } from "@privy-io/react-auth";
 // @ts-ignore - provided by Alchemy Account Kit at runtime
-import { useSendCalls } from "@account-kit/react";
+import { useSmartAccountClient, useSendCalls } from "@account-kit/react";
 import { RotateCcw, AlertCircle, CheckCircle2, Hash, ExternalLink, Search } from "lucide-react";
 
 export default function RevokePage() {
@@ -15,8 +14,9 @@ export default function RevokePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [certificateData, setCertificateData] = useState<any>(null);
-  const { wallets } = useWallets();
-  const { sendCallsAsync } = useSendCalls({});
+  const { client } = useSmartAccountClient({});
+  const { sendCallsAsync } = useSendCalls({ client });
+  const smartAddress = (client as any)?.account?.address as string | undefined;
 
   const fetchCertificateDetails = async (hashValue: string) => {
     try {
@@ -54,81 +54,96 @@ export default function RevokePage() {
     setError("");
     try {
       if (!NEXT_PUBLIC_CERT_REGISTRY_ADDRESS) throw new Error("Contract address missing");
-      const w = wallets[0];
-      if (!w) throw new Error("No wallet connected");
-      const eth = await w.getEthereumProvider();
-      let provider = new ethers.BrowserProvider(eth as any);
+      if (!smartAddress) throw new Error("No wallet connected");
       
-      // Check network - contract is deployed on Polygon Amoy (chainId: 421614 )
+      // Use read-only provider for contract reads (same as issue page)
+      const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc";
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      
+      // Check network - contract is deployed on Arbitrum Sepolia (chainId: 421614)
       let network = await provider.getNetwork();
       let chainId = Number(network.chainId);
       
-      // Automatically switch to Polygon Amoy if on wrong network
-      if (chainId !== 421614 ) {
-        setError("Switching to Polygon Amoy network...");
-        try {
-          // Try to switch network
-          await (eth as any).request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: "0x66EEE" }], // 421614  in hex
-          });
-          // Wait a bit for the switch to complete
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          // Refresh provider and check again
-          provider = new ethers.BrowserProvider(eth as any);
-          network = await provider.getNetwork();
-          chainId = Number(network.chainId);
-          setError(""); // Clear error message after successful switch
-        } catch (switchError: any) {
-          // If chain doesn't exist in wallet, add it
-          if (switchError?.code === 4902 || (switchError?.data && String(switchError.data).includes("Unrecognized chain ID"))) {
-            setError("Adding Polygon Amoy network to wallet...");
-            await (eth as any).request({
-              method: "wallet_addEthereumChain",
-              params: [{
-                chainId: "0x66EEE",
-                chainName: "Arbitrum Sepolia",
-                nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-                rpcUrls: ["https://sepolia-rollup.arbitrum.io/rpc"],
-                blockExplorerUrls: ["https://sepolia.arbiscan.io"],
-              }],
-            });
-            // Wait for the chain to be added
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            // Refresh provider
-            provider = new ethers.BrowserProvider(eth as any);
-            network = await provider.getNetwork();
-            chainId = Number(network.chainId);
-            setError(""); // Clear error message after successful add
-          } else {
-            throw new Error(`Failed to switch to Polygon Amoy. Please switch manually to chainId: 421614 `);
-          }
-        }
-        
-        // Double-check we're on the right network now
-        if (chainId !== 421614 ) {
-          throw new Error(`Still on wrong network. Please ensure you're connected to Polygon Amoy (chainId: 421614 )`);
-        }
+      // Automatically switch to Arbitrum Sepolia if on wrong network
+      if (chainId !== 421614) {
+        setError("Please ensure you're connected to Arbitrum Sepolia network");
+        // Note: Chain switching for Alchemy Account Kit is handled at config level
+        // Users need to reconnect with the correct chain configured
+        setLoading(false);
+        return;
       }
-      
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, signer);
       
       // Check if contract code exists at this address
       const code = await provider.getCode(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS);
       if (!code || code === "0x") {
-        throw new Error(`No contract found at address ${NEXT_PUBLIC_CERT_REGISTRY_ADDRESS} on Polygon Amoy. Please verify:\n1. You are connected to Polygon Amoy network\n2. The contract address is correct\n3. The contract is deployed on Polygon Amoy`);
+        throw new Error(`No contract found at address ${NEXT_PUBLIC_CERT_REGISTRY_ADDRESS} on Arbitrum Sepolia. Please verify:\n1. You are connected to Arbitrum Sepolia network\n2. The contract address is correct\n3. The contract is deployed on Arbitrum Sepolia`);
       }
       
+      // Helper function to normalize hash to exactly bytes32 format (0x + 64 hex chars)
+      const normalizeHashToBytes32 = (hashInput: string): string => {
+        let normalized = hashInput.trim();
+        
+        // Remove 0x prefix if present
+        if (normalized.startsWith("0x")) {
+          normalized = normalized.slice(2);
+        }
+        
+        // Ensure exactly 64 hex characters (32 bytes)
+        if (normalized.length > 64) {
+          // If too long, truncate to 64 chars
+          normalized = normalized.slice(0, 64);
+        } else if (normalized.length < 64) {
+          // If too short, pad with zeros
+          normalized = normalized.padStart(64, '0');
+        }
+        
+        // Validate it's valid hex
+        if (!/^[0-9a-fA-F]{64}$/.test(normalized)) {
+          throw new Error(`Invalid hex string: ${normalized}`);
+        }
+        
+        return `0x${normalized}`;
+      };
+      
       // Ensure hash is in proper bytes32 format
-      const hashBytes32 = hash.startsWith("0x") ? hash : `0x${hash.replace(/^0x/, "")}`;
-      if (hashBytes32.length !== 66) {
-        throw new Error(`Invalid hash format. Expected bytes32 (66 chars), got ${hashBytes32.length} chars`);
+      let hashBytes32: string;
+      try {
+        hashBytes32 = normalizeHashToBytes32(hash);
+        // Validate using ethers to ensure it's a proper hex string
+        hashBytes32 = ethers.hexlify(hashBytes32);
+        
+        // Final validation - must be exactly 66 characters (0x + 64 hex)
+        if (hashBytes32.length !== 66) {
+          throw new Error(`Hash must be exactly 66 characters (0x + 64 hex), got ${hashBytes32.length}: ${hashBytes32}`);
+        }
+      } catch (err: any) {
+        throw new Error(`Invalid hash format: ${err?.message || err}. Original hash: ${hash}`);
+      }
+      
+      // Check if certificate exists in the contract before attempting to revoke
+      const contractRO = new ethers.Contract(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, provider);
+      try {
+        const certificate = await contractRO.getCertificate(hashBytes32);
+        if (!certificate || !certificate.metadataURI || certificate.metadataURI.length === 0) {
+          throw new Error("Certificate not found in the contract. Please verify the hash is correct.");
+        }
+        if (certificate.revoked) {
+          throw new Error("Certificate is already revoked.");
+        }
+      } catch (err: any) {
+        // If it's our custom error, throw it
+        if (err.message && (err.message.includes("not found") || err.message.includes("already revoked"))) {
+          throw err;
+        }
+        // Otherwise, log and continue (might be a network issue)
+        console.warn("Could not verify certificate existence:", err);
       }
       
       // Create contract interface for encoding transaction data
       const contractInterface = new ethers.Interface(CERTIFICATE_REGISTRY_ABI);
+      console.log("Revoking hash:", hashBytes32, "length:", hashBytes32.length);
       const txData = contractInterface.encodeFunctionData("revoke", [hashBytes32]);
+      console.log("Encoded txData:", txData);
 
       // Send via Alchemy Account Kit (gas sponsorship policy configured at provider level)
       const policyId = process.env.NEXT_PUBLIC_ALCHEMY_GAS_POLICY_ID as string | undefined;
@@ -442,7 +457,7 @@ export default function RevokePage() {
           <button
             disabled={
               loading ||
-              !wallets.length ||
+              !smartAddress ||
               !hash.trim() ||
               certificateData?.status === "revoked"
             }

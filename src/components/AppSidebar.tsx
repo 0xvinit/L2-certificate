@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
+// @ts-ignore - provided by Alchemy Account Kit at runtime
+import { useUser, useSignerStatus } from "@account-kit/react";
 import {
   LayoutDashboard,
   FileText,
@@ -14,7 +16,6 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { usePrivy } from "@privy-io/react-auth";
 
 type UserInfo = {
   adminId: string;
@@ -25,7 +26,9 @@ type UserInfo = {
 export default function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { ready, authenticated } = usePrivy();
+  const user = useUser();
+  const signerStatus = useSignerStatus();
+  const isAuthenticated = user && user.email;
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const hadUserInfoRef = useRef(false);
@@ -59,7 +62,7 @@ export default function AppSidebar() {
         setLoading(false);
       }
     })();
-  }, [pathname, ready, authenticated, router]);
+  }, [pathname, isAuthenticated, signerStatus.isInitializing, router]);
 
   // All possible menu items
   const allItems = [

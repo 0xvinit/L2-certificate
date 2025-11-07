@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { usePrivy } from '@privy-io/react-auth'
+// @ts-ignore - provided by Alchemy Account Kit at runtime
+import { useUser, useAuthModal } from '@account-kit/react'
 import Navbar from '../Navbar/Navbar'
 import certi1 from "@/app/assets/certi1.jpg"
 import certi2 from "@/app/assets/certi2.jpg"
@@ -14,8 +15,10 @@ import certi5 from "@/app/assets/certi5.jpg"
 
 const Homepage = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const { authenticated, login } = usePrivy()
+  const user = useUser()
+  const { openAuthModal } = useAuthModal()
   const router = useRouter()
+  const authenticated = user && user.email
 
   const images = [ certi1, certi2, certi3, certi4, certi5]
 
@@ -75,7 +78,7 @@ const Homepage = () => {
     } else {
       // If not authenticated, trigger Google login popup
       try {
-        await login()
+        openAuthModal()
       } catch (error) {
         console.error('Login error:', error)
       }

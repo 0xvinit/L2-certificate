@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+// @ts-ignore - provided by Alchemy Account Kit at runtime
+import { useSmartAccountClient, useUser, useAuthModal, useSignerStatus } from "@account-kit/react";
 import { IoWallet, IoCopy, IoLogOut, IoChevronDown } from "react-icons/io5";
 
 const Navbar = () => {
@@ -11,11 +12,15 @@ const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Privy wallet integration
-  const { ready, authenticated, login, logout } = usePrivy();
-  const { wallets } = useWallets();
-  const address = wallets?.[0]?.address || "";
+  // Alchemy wallet integration
+  const { client } = useSmartAccountClient({});
+  const user = useUser();
+  const { openAuthModal } = useAuthModal();
+  const signerStatus = useSignerStatus();
+  const smartAddress = (client as any)?.account?.address as string | undefined;
+  const address = smartAddress || "";
   const isConnected = Boolean(address);
+  const isAuthenticated = user && user.email;
 
   const isHomePage = pathname === "/";
 
@@ -45,21 +50,21 @@ const Navbar = () => {
 
   // Clear session cookie when user becomes unauthenticated
   useEffect(() => {
-    if (ready && !authenticated) {
+    if (!signerStatus.isInitializing && !isAuthenticated) {
       // User logged out - clear session cookie
       fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
       }).catch(() => {});
     }
-  }, [ready, authenticated]);
+  }, [isAuthenticated, signerStatus.isInitializing]);
 
   const toggleDropdown = () => {
     setDropdownOpen(!dropdownOpen);
   };
 
   const handleConnectWallet = () => {
-    login();
+    openAuthModal();
   };
 
   const handleDisconnect = async () => {
@@ -72,8 +77,8 @@ const Navbar = () => {
     } catch (error) {
       console.error("Error clearing session:", error);
     }
-    // Then logout from Privy
-    logout();
+    // For Alchemy Account Kit, logout is handled differently
+    // The user will need to disconnect through the auth modal
     setDropdownOpen(false);
     // Redirect to home page after logout
     if (typeof window !== "undefined") {
@@ -112,7 +117,7 @@ const Navbar = () => {
 
             {/* Right Side Buttons */}
             <div className="flex items-center space-x-3 font-poppins">
-              {ready && authenticated && isConnected ? (
+              {!signerStatus.isInitializing && isAuthenticated && isConnected ? (
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={toggleDropdown}

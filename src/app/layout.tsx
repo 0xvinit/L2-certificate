@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Cairo, Poppins, Saira, Major_Mono_Display } from "next/font/google";
 import "./globals.css";
-import PrivyProvider from "../providers/PrivyProvider";
 import { Providers } from "../providers/AlchemyWallet";
 import { cookieToInitialState } from "@account-kit/core";
 import { config } from "../../config";
