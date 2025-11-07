@@ -19,7 +19,7 @@ const Navbar = () => {
   const signerStatus = useSignerStatus();
   const smartAddress = (client as any)?.account?.address as string | undefined;
   const address = smartAddress || "";
-  const isConnected = Boolean(address);
+  const isConnected = Boolean((user && user.email) || address);
   const isAuthenticated = user && user.email;
 
   const isHomePage = pathname === "/";
@@ -130,9 +130,9 @@ const Navbar = () => {
   };
 
   const copyAddress = () => {
-    if (address) {
-      navigator.clipboard.writeText(address);
-      // You can add a toast notification here if needed
+    const toCopy = (user as any)?.email || address;
+    if (toCopy) {
+      navigator.clipboard.writeText(String(toCopy));
     }
   };
 
@@ -173,11 +173,9 @@ const Navbar = () => {
         border border-[#28aeec]/40 hover:border-[#28aeec]/80 uppercase"
                   >
                     <span className="relative z-10 flex items-center gap-2.5">
-                      <IoWallet className="w-5 h-5 text-white " />
+                      {/* <IoWallet className="w-5 h-5 text-white " /> */}
                       <span className="hidden sm:block">
-                        {address
-                          ? `${address.slice(0, 6)}...${address.slice(-4)}`
-                          : "Connected"}
+                        {(user as any)?.email || (address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "Connected")}
                       </span>
                       <IoChevronDown
                         className={`w-4 h-4 transition-transform duration-300 ${
@@ -209,10 +207,10 @@ const Navbar = () => {
         shadow-[#28aeec]/20"
                     >
                       <div className="p-4">
-                        {/* Address Section */}
+                        {/* Account Section */}
                         <div className="mb-4">
                           <p className="text-[#28aeec] text-sm font-medium mb-2 font-poppins">
-                            Wallet Address
+                            Email
                           </p>
                           <div
                             className="flex items-center justify-between
@@ -221,16 +219,12 @@ const Navbar = () => {
               hover:bg-[#28aeec]/20 hover:border-[#28aeec]/50 transition-all duration-300"
                           >
                             <span className="text-[#28aeec] font-mono text-sm font-medium">
-                              {address
-                                ? `${address.slice(0, 8)}...${address.slice(
-                                    -8
-                                  )}`
-                                : ""}
+                              {(user as any)?.email || (address ? `${address.slice(0, 8)}...${address.slice(-8)}` : "")}
                             </span>
                             <button
                               onClick={copyAddress}
                               className="cursor-pointer p-2 hover:bg-[#28aeec]/30 rounded-lg transition-all duration-300 group"
-                              title="Copy Address"
+                              title="Copy"
                             >
                               <IoCopy className="w-4 h-4 text-[#28aeec] group-hover:text-[#28aeec] group-hover:scale-110" />
                             </button>
@@ -264,7 +258,7 @@ const Navbar = () => {
       border border-[#28aeec]/40 hover:border-[#28aeec]/80 uppercase"
                 >
                   <span className="relative z-10 flex items-center gap-2.5">
-                    <IoWallet className="w-5 h-5 transition-all duration-300 group-hover:rotate-12 group-hover:scale-110" />
+                    {/* <IoWallet className="w-5 h-5 transition-all duration-300 group-hover:rotate-12 group-hover:scale-110" /> */}
                     <span className="hidden sm:block">Login</span>
                   </span>
 
