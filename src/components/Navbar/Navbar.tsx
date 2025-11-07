@@ -21,6 +21,7 @@ const Navbar = () => {
   const address = smartAddress || "";
   const isConnected = Boolean((user && user.email) || address);
   const isAuthenticated = user && user.email;
+  const processedAuthRef = useRef<string | null>(null);
 
   const isHomePage = pathname === "/";
 
@@ -56,8 +57,60 @@ const Navbar = () => {
         method: "POST",
         credentials: "include",
       }).catch(() => {});
+      processedAuthRef.current = null;
     }
   }, [isAuthenticated, signerStatus.isInitializing]);
+
+  // Ensure admin JWT cookie is created no matter which page triggers Alchemy login
+  useEffect(() => {
+    (async () => {
+      const email = (user as any)?.email ? String((user as any).email).toLowerCase() : "";
+      const smart = (client as any)?.account?.address as string | undefined;
+      const walletAddress = smart ? String(smart).toLowerCase() : "";
+
+      if (!email && !walletAddress) return;
+      if (processedAuthRef.current === email || (!email && processedAuthRef.current === walletAddress)) return;
+
+      try {
+        // Upsert wallet mapping if available
+        if (walletAddress) {
+          await fetch("/api/admin/wallet", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ walletAddress, chainId: null, walletType: "alchemy" })
+          }).catch(() => {});
+        }
+
+        // Establish server session (JWT) for allowlisted admins
+        const resp = await fetch("/api/auth/alchemy", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, walletAddress })
+        });
+
+        if (resp.ok) {
+          processedAuthRef.current = email || walletAddress || "processed";
+          // Give the browser a moment to persist cookie
+          await new Promise(r => setTimeout(r, 200));
+          // Verify cookie and redirect if on public pages
+          let meOk = false;
+          for (let i = 0; i < 3; i++) {
+            const meResp = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" as any });
+            if (meResp.ok) { meOk = true; break; }
+            await new Promise(r => setTimeout(r, 200));
+          }
+          if (meOk) {
+            const onPublic = !pathname.startsWith("/admin");
+            if (onPublic && typeof window !== "undefined") {
+              window.location.replace("/admin/dashboard");
+            }
+          }
+        }
+      } catch {}
+    })();
+  }, [user, client]);
 
   const toggleDropdown = () => {
     setDropdownOpen(!dropdownOpen);
