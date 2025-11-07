@@ -1,10 +1,12 @@
 "use client";
 import { useState } from "react";
 import { ethers } from "ethers";
-import { CERTIFICATE_REGISTRY_ABI, CERTIFICATE_REGISTRY_ADDRESS } from "../../lib/contract";
+import { CERTIFICATE_REGISTRY_ABI, NEXT_PUBLIC_CERT_REGISTRY_ADDRESS } from "../../lib/contract";
 import AppShell from "@/components/AppShell";
 import WalletConnection from "@/components/WalletConnection";
 import { useWallets } from "@privy-io/react-auth";
+// @ts-ignore - provided by Alchemy Account Kit at runtime
+import { useSendCalls } from "@account-kit/react";
 import { RotateCcw, AlertCircle, CheckCircle2, Hash, ExternalLink, Search } from "lucide-react";
 
 export default function RevokePage() {
@@ -14,6 +16,7 @@ export default function RevokePage() {
   const [error, setError] = useState<string>("");
   const [certificateData, setCertificateData] = useState<any>(null);
   const { wallets } = useWallets();
+  const { sendCallsAsync } = useSendCalls({});
 
   const fetchCertificateDetails = async (hashValue: string) => {
     try {
@@ -50,16 +53,96 @@ export default function RevokePage() {
     setTxHash("");
     setError("");
     try {
-      if (!CERTIFICATE_REGISTRY_ADDRESS) throw new Error("Contract address missing");
+      if (!NEXT_PUBLIC_CERT_REGISTRY_ADDRESS) throw new Error("Contract address missing");
       const w = wallets[0];
       if (!w) throw new Error("No wallet connected");
       const eth = await w.getEthereumProvider();
-      const provider = new ethers.BrowserProvider(eth as any);
+      let provider = new ethers.BrowserProvider(eth as any);
+      
+      // Check network - contract is deployed on Polygon Amoy (chainId: 421614 )
+      let network = await provider.getNetwork();
+      let chainId = Number(network.chainId);
+      
+      // Automatically switch to Polygon Amoy if on wrong network
+      if (chainId !== 421614 ) {
+        setError("Switching to Polygon Amoy network...");
+        try {
+          // Try to switch network
+          await (eth as any).request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: "0x66EEE" }], // 421614  in hex
+          });
+          // Wait a bit for the switch to complete
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Refresh provider and check again
+          provider = new ethers.BrowserProvider(eth as any);
+          network = await provider.getNetwork();
+          chainId = Number(network.chainId);
+          setError(""); // Clear error message after successful switch
+        } catch (switchError: any) {
+          // If chain doesn't exist in wallet, add it
+          if (switchError?.code === 4902 || (switchError?.data && String(switchError.data).includes("Unrecognized chain ID"))) {
+            setError("Adding Polygon Amoy network to wallet...");
+            await (eth as any).request({
+              method: "wallet_addEthereumChain",
+              params: [{
+                chainId: "0x66EEE",
+                chainName: "Arbitrum Sepolia",
+                nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+                rpcUrls: ["https://sepolia-rollup.arbitrum.io/rpc"],
+                blockExplorerUrls: ["https://sepolia.arbiscan.io"],
+              }],
+            });
+            // Wait for the chain to be added
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Refresh provider
+            provider = new ethers.BrowserProvider(eth as any);
+            network = await provider.getNetwork();
+            chainId = Number(network.chainId);
+            setError(""); // Clear error message after successful add
+          } else {
+            throw new Error(`Failed to switch to Polygon Amoy. Please switch manually to chainId: 421614 `);
+          }
+        }
+        
+        // Double-check we're on the right network now
+        if (chainId !== 421614 ) {
+          throw new Error(`Still on wrong network. Please ensure you're connected to Polygon Amoy (chainId: 421614 )`);
+        }
+      }
+      
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CERTIFICATE_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, signer);
-      const tx = await contract.revoke(hash);
-      const receipt = await tx.wait();
-      setTxHash(receipt?.hash || "");
+      const contract = new ethers.Contract(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, signer);
+      
+      // Check if contract code exists at this address
+      const code = await provider.getCode(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS);
+      if (!code || code === "0x") {
+        throw new Error(`No contract found at address ${NEXT_PUBLIC_CERT_REGISTRY_ADDRESS} on Polygon Amoy. Please verify:\n1. You are connected to Polygon Amoy network\n2. The contract address is correct\n3. The contract is deployed on Polygon Amoy`);
+      }
+      
+      // Ensure hash is in proper bytes32 format
+      const hashBytes32 = hash.startsWith("0x") ? hash : `0x${hash.replace(/^0x/, "")}`;
+      if (hashBytes32.length !== 66) {
+        throw new Error(`Invalid hash format. Expected bytes32 (66 chars), got ${hashBytes32.length} chars`);
+      }
+      
+      // Create contract interface for encoding transaction data
+      const contractInterface = new ethers.Interface(CERTIFICATE_REGISTRY_ABI);
+      const txData = contractInterface.encodeFunctionData("revoke", [hashBytes32]);
+
+      // Send via Alchemy Account Kit (gas sponsorship policy configured at provider level)
+      const policyId = process.env.NEXT_PUBLIC_ALCHEMY_GAS_POLICY_ID as string | undefined;
+      const sendResult = await sendCallsAsync({
+        ...(policyId ? { capabilities: { paymasterService: { policyId } } } : {}),
+        calls: [
+          {
+            to: NEXT_PUBLIC_CERT_REGISTRY_ADDRESS,
+            data: txData,
+          } as any,
+        ],
+      });
+      const opId = Array.isArray((sendResult as any)?.ids) ? (sendResult as any).ids[0] : String(sendResult);
+      setTxHash(opId);
       // Fetch certificate details after successful revocation if not already loaded
       if (!certificateData) {
         await fetchCertificateDetails(hash);

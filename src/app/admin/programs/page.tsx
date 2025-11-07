@@ -3,9 +3,10 @@ import { useEffect, useState } from "react"
 import type React from "react"
 
 import { useRouter } from "next/navigation"
+import { useWallets } from "@privy-io/react-auth"
 import WalletConnection from "@/components/WalletConnection"
 import AppShell from "@/components/AppShell"
-import { Plus, Settings2, ToggleRight, ToggleLeft } from "lucide-react"
+import { Plus, Settings2, ToggleRight, ToggleLeft, AlertCircle } from "lucide-react"
 
 type Program = {
   _id: string
@@ -21,6 +22,7 @@ type Program = {
 
 export default function ProgramsPage() {
   const router = useRouter()
+  const { wallets } = useWallets()
   const [admin, setAdmin] = useState<any>(null)
   const [items, setItems] = useState<Program[]>([])
   const [name, setName] = useState("")
@@ -29,6 +31,8 @@ export default function ProgramsPage() {
   const [endDate, setEndDate] = useState("")
   const [logoUrl, setLogoUrl] = useState("")
   const [signatureUrl, setSignatureUrl] = useState("")
+  const [error, setError] = useState<string>("")
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -53,40 +57,76 @@ export default function ProgramsPage() {
 
   const addProgram = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!admin?.walletAddress || !admin?.adminId) return
-    const res = await fetch("/api/programs", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        adminAddress: admin.walletAddress,
-        adminId: admin.adminId,
-        name,
-        code,
-        startDate,
-        endDate,
-        logoUrl,
-        signatureUrl,
-      }),
-    })
-    const data = await res.json()
-    setName("")
-    setCode("")
-    setStartDate("")
-    setEndDate("")
-    setLogoUrl("")
-    setSignatureUrl("")
-    if (data && data._id) load(admin.walletAddress.toLowerCase())
+    setError("")
+    setLoading(true)
+    
+    try {
+      if (!admin?.adminId) {
+        setError("Admin ID not found. Please refresh the page.")
+        setLoading(false)
+        return
+      }
+
+      // Get wallet address from connected wallets or use empty string
+      const walletAddress = wallets.length > 0 ? wallets[0].address : (admin.walletAddress || "")
+
+      const res = await fetch("/api/programs", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          adminAddress: walletAddress,
+          adminId: admin.adminId,
+          name,
+          code,
+          startDate,
+          endDate,
+          logoUrl,
+          signatureUrl,
+        }),
+      })
+
+      const data = await res.json()
+      
+      if (!res.ok) {
+        setError(data.error || "Failed to create program")
+        setLoading(false)
+        return
+      }
+
+      // Clear form
+      setName("")
+      setCode("")
+      setStartDate("")
+      setEndDate("")
+      setLogoUrl("")
+      setSignatureUrl("")
+      
+      // Reload programs list
+      if (data && data._id) {
+        await load(admin.adminId.toLowerCase())
+      }
+    } catch (err: any) {
+      setError(err?.message || "Failed to create program")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const toggleActive = async (id: string, isActive: boolean) => {
-    await fetch("/api/programs", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ id, isActive: !isActive }),
-    })
-    if (admin?.walletAddress) load(admin.walletAddress.toLowerCase())
+    try {
+      const res = await fetch("/api/programs", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ id, isActive: !isActive }),
+      })
+      if (res.ok && admin?.adminId) {
+        await load(admin.adminId.toLowerCase())
+      }
+    } catch (err) {
+      console.error("Failed to toggle program status:", err)
+    }
   }
 
   return (
@@ -197,6 +237,14 @@ export default function ProgramsPage() {
             </div>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="rounded-xl bg-gradient-to-br from-red-50 to-red-50/40 p-4 border border-red-200/60 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700 font-medium">{error}</p>
+            </div>
+          )}
+
           {/* Preview uploaded files */}
           {(logoUrl || signatureUrl) && (
             <div className="flex items-center gap-4 pt-2 pb-4 border-t border-slate-200/40">
@@ -235,11 +283,11 @@ export default function ProgramsPage() {
 
           <button
             type="submit"
-            disabled={!admin?.walletAddress}
+            disabled={loading || !admin?.adminId}
             className="w-full h-11 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-blue-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <Plus className="h-4 w-4" />
-            Add Program
+            {loading ? "Adding Program..." : "Add Program"}
           </button>
         </form>
       </div>

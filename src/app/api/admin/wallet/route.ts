@@ -22,7 +22,10 @@ export async function POST(req: NextRequest) {
       $set: {
         chainId: chainId || null,
         walletType: walletType || "privy",
-        lastActiveAt: now
+        lastActiveAt: now,
+        // New flags for approval flow
+        pending: true, // default pending until super admin approves on-chain
+        authorizedOnChain: false
       },
       $setOnInsert: {
         connectedAt: now
@@ -57,7 +60,9 @@ export async function GET(req: NextRequest) {
     chainId: c.chainId,
     walletType: c.walletType,
     connectedAt: c.connectedAt,
-    lastActiveAt: c.lastActiveAt
+    lastActiveAt: c.lastActiveAt,
+    pending: !!c.pending,
+    authorizedOnChain: !!c.authorizedOnChain
   }))), { headers: { "content-type": "application/json" } });
 }
 

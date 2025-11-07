@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { ethers } from "ethers";
-import { CERTIFICATE_REGISTRY_ABI, CERTIFICATE_REGISTRY_ADDRESS } from "../lib/contract";
+import { CERTIFICATE_REGISTRY_ABI, NEXT_PUBLIC_CERT_REGISTRY_ADDRESS } from "../lib/contract";
 
 interface WalletConnectionProps {
   showOnChainIssuer?: boolean;
@@ -28,18 +28,18 @@ export default function WalletConnection({ showOnChainIssuer = false, showSwitch
     try {
       await (eth as any).request({
         method: "wallet_switchEthereumChain",
-        params: [{ chainId: "0x13882" }], // 80002
+        params: [{ chainId: "0x66EEE" }], // 421614 
       });
     } catch (switchError: any) {
       if (switchError?.code === 4902 || (switchError?.data && String(switchError.data).includes("Unrecognized chain ID"))) {
         await (eth as any).request({
           method: "wallet_addEthereumChain",
           params: [{
-            chainId: "0x13882",
-            chainName: "Polygon Amoy",
-            nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
-            rpcUrls: ["https://rpc-amoy.polygon.technology"],
-            blockExplorerUrls: ["https://amoy.polygonscan.com"],
+            chainId: "0x66EEE",
+            chainName: "Arbitrum Sepolia",
+            nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+            rpcUrls: ["https://sepolia-rollup.arbitrum.io/rpc"],
+            blockExplorerUrls: ["https://sepolia.arbiscan.io"],
           }],
         });
       }
@@ -74,9 +74,9 @@ export default function WalletConnection({ showOnChainIssuer = false, showSwitch
           setChainId(chain);
           
           // Get on-chain issuer if needed
-          if (showOnChainIssuer && CERTIFICATE_REGISTRY_ADDRESS && (String(clientType).toLowerCase() === "privy")) {
+          if (showOnChainIssuer && NEXT_PUBLIC_CERT_REGISTRY_ADDRESS && (String(clientType).toLowerCase() === "privy")) {
             try {
-              const contractRO = new ethers.Contract(CERTIFICATE_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, provider);
+              const contractRO = new ethers.Contract(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, provider);
               const iss: string = await contractRO.issuer();
               setOnchainIssuer(iss);
             } catch {}
@@ -196,11 +196,11 @@ export default function WalletConnection({ showOnChainIssuer = false, showSwitch
             fontSize: "13px"
           }}>
             {showOnChainIssuer && onchainIssuer && (
-              <div style={{ marginBottom: showSwitchChain && chainId !== 80002 ? "8px" : "0" }}>
+              <div style={{ marginBottom: showSwitchChain && chainId !== 421614  ? "8px" : "0" }}>
                 <strong>On-chain Issuer:</strong> {onchainIssuer.slice(0, 6)}...{onchainIssuer.slice(-4)}
               </div>
             )}
-            {showSwitchChain && chainId !== null && chainId !== 80002 && (
+            {showSwitchChain && chainId !== null && chainId !== 421614  && (
               <button
                 onClick={switchToAmoy}
                 style={{

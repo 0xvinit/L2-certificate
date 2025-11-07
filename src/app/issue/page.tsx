@@ -3,15 +3,16 @@ import { useState, useEffect } from "react"
 import type React from "react"
 
 import { ethers } from "ethers"
-import { CERTIFICATE_REGISTRY_ABI, CERTIFICATE_REGISTRY_ADDRESS } from "../../lib/contract"
+import { CERTIFICATE_REGISTRY_ABI, NEXT_PUBLIC_CERT_REGISTRY_ADDRESS } from "../../lib/contract"
 import { sha256HexBytes } from "../../lib/sha256"
-import { usePrivy, useWallets } from "@privy-io/react-auth"
+// @ts-ignore - provided by Alchemy Account Kit at runtime
+import { useSendCalls, useSmartAccountClient, useAuthModal, useSignerStatus, useUser } from "@account-kit/react"
 import WalletConnection from "@/components/WalletConnection"
 import AppShell from "@/components/AppShell"
 import CertificateTemplate from "@/components/CertificateTemplate"
 import { generatePDFFromHTML, addQRCodeToElement } from "../../lib/pdfGenerator"
 import { createRoot } from "react-dom/client"
-import { AlertCircle, CheckCircle2, FileText, Award } from "lucide-react"
+import { AlertCircle, CheckCircle2, FileText, Award, ExternalLink } from "lucide-react"
 
 export default function IssuePage() {
   const [studentName, setStudentName] = useState("")
@@ -25,8 +26,11 @@ export default function IssuePage() {
   const [error, setError] = useState<string>("")
   const [admin, setAdmin] = useState<any>(null)
 
-  const { authenticated } = usePrivy()
-  const { wallets } = useWallets()
+  const { client } = useSmartAccountClient({})
+  const { sendCallsAsync } = useSendCalls({ client })
+  const { openAuthModal } = useAuthModal()
+  const signerStatus = useSignerStatus()
+  const user = useUser()
 
   useEffect(() => {
     ;(async () => {
@@ -40,6 +44,17 @@ export default function IssuePage() {
       }
     })()
   }, [])
+
+  // Monitor Alchemy Account Kit status and show helpful message if needed
+  useEffect(() => {
+    if (admin?.adminId && !signerStatus.isInitializing) {
+      if (!user || !user.email) {
+        // User has app session but Alchemy Account Kit isn't connected
+        // Don't set error here, just log for debugging
+        console.log("App session exists but Alchemy Account Kit not connected")
+      }
+    }
+  }, [admin, signerStatus.isInitializing, user])
 
   const loadPrograms = async (addr: string) => {
     try {
@@ -64,8 +79,62 @@ export default function IssuePage() {
     setError("")
 
     try {
-      if (!wallets.length) throw new Error("Please connect your wallet")
-      if (!CERTIFICATE_REGISTRY_ADDRESS) throw new Error("Contract address missing")
+      // Verify admin is authenticated via app session first
+      if (!admin || !admin.adminId) {
+        throw new Error(`You must be logged in as an admin to issue certificates`)
+      }
+
+      // Check if Alchemy Account Kit is initializing - wait a bit if user has app session
+      if (signerStatus.isInitializing) {
+        // Wait up to 5 seconds for initialization if user has app session
+        let waited = 0
+        while (signerStatus.isInitializing && waited < 5000) {
+          await new Promise(resolve => setTimeout(resolve, 500))
+          waited += 500
+        }
+        if (signerStatus.isInitializing) {
+          setError("Smart wallet is still initializing. Please wait a moment and try again.")
+          setLoading(false)
+          return
+        }
+      }
+
+      // Check if user is authenticated with Alchemy Account Kit
+      // Prefer checking user object over signerStatus.isAuthenticated as it's more reliable for email login
+      if (!user || !user.email) {
+        setError("Please connect your smart wallet to continue")
+        try { 
+          openAuthModal() 
+        } catch (err) {
+          console.error("Failed to open auth modal:", err)
+        }
+        setLoading(false)
+        return
+      }
+
+      // Get smart account address - wait a bit if not ready but user is authenticated
+      let smartAddress = (client as any)?.account?.address as string | undefined
+      if (!smartAddress && user) {
+        // Wait up to 5 seconds for smart wallet to be ready
+        let waited = 0
+        while (!smartAddress && waited < 5000) {
+          await new Promise(resolve => setTimeout(resolve, 500))
+          smartAddress = (client as any)?.account?.address as string | undefined
+          waited += 500
+        }
+      }
+
+      if (!smartAddress) {
+        setError("Smart wallet not ready. Please refresh the page and try again.")
+        try { 
+          openAuthModal() 
+        } catch (err) {
+          console.error("Failed to open auth modal:", err)
+        }
+        setLoading(false)
+        return
+      }
+      if (!NEXT_PUBLIC_CERT_REGISTRY_ADDRESS) throw new Error("Contract address missing")
       if (!programId) throw new Error("Please select a program")
 
       const selectedProgram = programs.find((p: any) => p._id === programId)
@@ -159,28 +228,290 @@ export default function IssuePage() {
 
       const hash = tempHash
 
-      const w = wallets[0]
-      const eth = await w.getEthereumProvider()
-      const provider = new ethers.BrowserProvider(eth as any)
-      const signer = await provider.getSigner()
-      const contractRO = new ethers.Contract(CERTIFICATE_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, provider)
-      const contract = new ethers.Contract(CERTIFICATE_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, signer)
+      // Use read-only provider for contract reads
+      const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc"
+      const roProvider = new ethers.JsonRpcProvider(rpcUrl)
+      const contractRO = new ethers.Contract(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, roProvider)
 
-      const iss: string = await contractRO.issuer()
-      const from = await signer.getAddress()
-      if (iss.toLowerCase() !== from.toLowerCase()) {
-        throw new Error(`Connected wallet is not issuer. Issuer: ${iss}`)
+      // Check if contract code exists at this address
+      const code = await roProvider.getCode(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS)
+      if (!code || code === "0x") {
+        throw new Error(`No contract found at address ${NEXT_PUBLIC_CERT_REGISTRY_ADDRESS} on Polygon Amoy. Please verify:\n1. You are connected to Polygon Amoy network\n2. The contract address is correct\n3. The contract is deployed on Polygon Amoy`)
       }
 
-      const existing = await contractRO.getCertificate(hash)
+      // Verify admin is authenticated (already checked via /api/auth/me, but verify again for safety)
+      if (!admin || !admin.adminId) {
+        throw new Error(`You must be logged in as an admin to issue certificates`)
+      }
+
+      // Ensure hash is in proper bytes32 format (0x + 64 hex chars)
+      const hashBytes32 = hash.startsWith("0x") ? hash : `0x${hash}`
+      if (hashBytes32.length !== 66) { // 0x + 64 hex chars = 66 total
+        throw new Error(`Invalid hash format. Expected bytes32 (66 chars), got ${hashBytes32.length} chars`)
+      }
+
+      const existing = await contractRO.getCertificate(hashBytes32)
       if (existing && existing.metadataURI && existing.metadataURI.length > 0) {
         throw new Error("Certificate already registered for this hash")
       }
 
       const metadataURI = verifyUrl
-      const tx = await contract.register(hash, metadataURI)
-      const receipt = await tx.wait()
+      
+      // Final check: Ensure account is still ready before sending transaction
+      // Wait for client to be ready with retries
+      let finalSmartAddress = (client as any)?.account?.address as string | undefined
+      let clientReady = false
+      let retries = 0
+      const maxRetries = 10
+      
+      while (!clientReady && retries < maxRetries) {
+        if (client && (client as any).account && (client as any).account.address) {
+          finalSmartAddress = (client as any).account.address
+          // Verify account is actually ready
+          if (finalSmartAddress) {
+            clientReady = true
+            break
+          }
+        }
+        if (!clientReady) {
+          await new Promise(resolve => setTimeout(resolve, 500))
+          retries++
+        }
+      }
+      
+      if (!client) {
+        throw new Error("Smart account client not available. Please refresh and try again.")
+      }
+      
+      if (!finalSmartAddress || !user || !user.email) {
+        throw new Error("Smart wallet session expired. Please refresh and try again.")
+      }
+      
+      if (!clientReady) {
+        throw new Error("Smart account client not ready. Please wait a moment and try again.")
+      }
 
+      console.log("Client ready, finalSmartAddress:", finalSmartAddress)
+      console.log("Client account:", (client as any)?.account)
+      console.log("Client object:", client)
+
+      // Check if wallet is authorized on the contract; if not, block with clear message
+      try {
+        const isAuthorizedCheck = await (contractRO as any).isAuthorizedIssuer?.(finalSmartAddress)
+        if (isAuthorizedCheck === false) {
+          throw new Error("Your account is awaiting approval by the super admin. Please try again later.")
+        }
+      } catch (err: any) {
+        // If function not present in ABI, fall back to require super-admin has approved via UI; allow continue
+        if (err?.message?.includes("awaiting approval")) {
+          throw err
+        }
+      }
+
+      // Create contract interface for encoding transaction data
+      const contractInterface = new ethers.Interface(CERTIFICATE_REGISTRY_ABI)
+      console.log("contractInterface", contractInterface)
+      const txData = contractInterface.encodeFunctionData("register", [hashBytes32, metadataURI])
+      console.log("txData", txData, NEXT_PUBLIC_CERT_REGISTRY_ADDRESS)
+      
+      // Send via Alchemy Account Kit (gas sponsorship policy configured at provider level)
+      // Try both environment variable names for compatibility
+      const policyId = process.env.NEXT_PUBLIC_ALCHEMY_GAS_POLICY_ID || process.env.NEXT_PUBLIC_ALCHEMY_POLICY_ID
+      console.log("policyId", policyId)
+      console.log("Sending transaction with smart address:", finalSmartAddress)
+      console.log("Client available:", !!client)
+      console.log("Client account available:", !!(client as any)?.account)
+      
+      let sendResult: any
+      try {
+        // Ensure we're using the client's account context
+        if (!(client as any)?.account) {
+          throw new Error("Account not found in client. Please reconnect your wallet.")
+        }
+        
+        sendResult = await sendCallsAsync({
+          ...(policyId ? { capabilities: { paymasterService: { policyId } } } : {}),
+          calls: [
+            {
+              to: NEXT_PUBLIC_CERT_REGISTRY_ADDRESS,
+              data: txData,
+            } as any,
+          ],
+        })
+        console.log("sendResult", sendResult)
+        console.log("sendResult type:", typeof sendResult)
+        console.log("sendResult keys:", sendResult ? Object.keys(sendResult) : "null/undefined")
+        
+        // Log UserOperation request details if available
+        if (sendResult?.request) {
+          console.log("=== UserOperation Request Details ===")
+          console.log("Sender (Smart Account):", sendResult.request.sender)
+          console.log("Paymaster:", sendResult.request.paymaster || "None (self-paid)")
+          console.log("Call Data Length:", sendResult.request.callData?.length || 0)
+          console.log("Gas Limits:", {
+            callGasLimit: sendResult.request.callGasLimit,
+            verificationGasLimit: sendResult.request.verificationGasLimit,
+            preVerificationGas: sendResult.request.preVerificationGas,
+          })
+          console.log("Gas Prices:", {
+            maxFeePerGas: sendResult.request.maxFeePerGas,
+            maxPriorityFeePerGas: sendResult.request.maxPriorityFeePerGas,
+          })
+          console.log("=== End Request Details ===")
+        }
+      } catch (sendError: any) {
+        console.error("Error sending transaction:", sendError)
+        console.error("Error details:", {
+          name: sendError?.name,
+          message: sendError?.message,
+          stack: sendError?.stack,
+          client: !!client,
+          account: !!(client as any)?.account,
+        })
+        throw new Error(`Failed to send transaction: ${sendError?.message || String(sendError)}`)
+      }
+      
+      // Handle different possible return structures from sendCallsAsync
+      let opId: string
+      if (!sendResult) {
+        throw new Error("sendCallsAsync returned null or undefined")
+      } else if (Array.isArray((sendResult as any)?.ids)) {
+        opId = (sendResult as any).ids[0]
+      } else if ((sendResult as any)?.id) {
+        opId = String((sendResult as any).id)
+      } else if ((sendResult as any)?.hash) {
+        opId = String((sendResult as any).hash)
+      } else if (typeof sendResult === "string") {
+        opId = sendResult
+      } else {
+        // Try to stringify and extract any ID-like field
+        const resultStr = JSON.stringify(sendResult)
+        console.warn("Unexpected sendResult structure:", resultStr)
+        throw new Error(`Unexpected sendResult structure. Received: ${resultStr}`)
+      }
+      
+      console.log("opId extracted:", opId)
+      
+      if (!opId || opId === "undefined" || opId === "null") {
+        throw new Error("Failed to extract transaction ID from sendResult")
+      }
+
+      // Wait for UserOperation receipt and get the actual transaction hash
+      let txHash = opId // Fallback to UserOperation hash if we can't get tx hash
+      let receipt: any = null // Declare receipt outside try block for use later
+      try {
+        console.log("Waiting for UserOperation receipt for:", opId)
+        
+        // Use Alchemy's bundler endpoint for UserOperation receipts
+        // For Arbitrum Sepolia, use the appropriate bundler URL
+        const alchemyApiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
+        if (!alchemyApiKey) {
+          console.warn("Alchemy API key not found. Cannot fetch UserOperation receipt.")
+          txHash = opId
+        } else {
+          // Alchemy bundler endpoint format: https://{network}.g.alchemy.com/v2/{apiKey}
+          // For Arbitrum Sepolia, we need to construct the bundler URL
+          const bundlerUrl = `https://arb-sepolia.g.alchemy.com/v2/${alchemyApiKey}`
+          
+          // Wait for UserOperation receipt with polling
+          let attempts = 0
+          const maxAttempts = 60 // Wait up to 60 seconds (1 second intervals)
+          
+          while (!receipt && attempts < maxAttempts) {
+            try {
+              // Use eth_getUserOperationReceipt RPC method on bundler endpoint
+              const response = await fetch(bundlerUrl, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  jsonrpc: "2.0",
+                  id: 1,
+                  method: "eth_getUserOperationReceipt",
+                  params: [opId],
+                }),
+              })
+              
+              const data = await response.json()
+              if (data.result) {
+                receipt = data.result
+                // Extract transaction hash from receipt - check multiple possible locations
+                const possibleTxHash = receipt.receipt?.transactionHash || 
+                                      receipt.transactionHash || 
+                                      receipt.receipt?.hash ||
+                                      receipt.logs?.[0]?.transactionHash ||
+                                      null
+                
+                if (possibleTxHash && possibleTxHash !== opId && possibleTxHash.startsWith('0x') && possibleTxHash.length === 66) {
+                  txHash = possibleTxHash
+                } else {
+                  console.warn("Could not extract valid transaction hash from receipt, structure:", Object.keys(receipt))
+                }
+                
+                // Log detailed UserOperation information
+                console.log("=== UserOperation Receipt Details ===")
+                console.log("UserOperation Hash:", opId)
+                console.log("Sender (Smart Account):", receipt.sender || receipt.userOp?.sender)
+                console.log("Paymaster Address:", receipt.paymaster || receipt.userOp?.paymaster || "None (self-paid)")
+                console.log("Beneficiary (Bundler):", receipt.receipt?.from || receipt.beneficiary || "N/A")
+                console.log("Receipt Structure:", Object.keys(receipt))
+                console.log("Receipt.receipt Structure:", receipt.receipt ? Object.keys(receipt.receipt) : "N/A")
+                console.log("Extracted Transaction Hash:", txHash)
+                console.log("Gas Used:", receipt.actualGasUsed || receipt.receipt?.gasUsed)
+                console.log("Success:", receipt.success !== false)
+                
+                console.log("\n📋 EXPLANATION:")
+                console.log("  • Sender: Your smart account that initiated the transaction")
+                console.log("  • Paymaster: The contract that PAID for your gas fees (Alchemy's paymaster)")
+                console.log("  • Beneficiary: The bundler address that RECEIVED the transaction fees")
+                console.log("  • Transaction Hash: The actual on-chain transaction")
+                
+                if (receipt.userOp) {
+                  console.log("UserOperation Details:", {
+                    sender: receipt.userOp.sender,
+                    nonce: receipt.userOp.nonce,
+                    callData: receipt.userOp.callData,
+                    callGasLimit: receipt.userOp.callGasLimit,
+                    verificationGasLimit: receipt.userOp.verificationGasLimit,
+                    preVerificationGas: receipt.userOp.preVerificationGas,
+                    maxFeePerGas: receipt.userOp.maxFeePerGas,
+                    maxPriorityFeePerGas: receipt.userOp.maxPriorityFeePerGas,
+                    paymaster: receipt.userOp.paymaster,
+                    paymasterData: receipt.userOp.paymasterData,
+                  })
+                }
+                
+                console.log("Full Receipt:", JSON.stringify(receipt, null, 2))
+                console.log("=== End UserOperation Details ===")
+                break
+              } else if (data.error && data.error.code !== -32000) {
+                // -32000 is "not found" which is expected while waiting
+                console.warn("RPC error:", data.error)
+              }
+            } catch (err) {
+              console.log(`Attempt ${attempts + 1}/${maxAttempts}: Waiting for receipt...`)
+            }
+            
+            if (!receipt) {
+              await new Promise(resolve => setTimeout(resolve, 1000))
+              attempts++
+            }
+          }
+          
+          if (!receipt) {
+            console.warn("Could not get UserOperation receipt within timeout. Using UserOperation hash.")
+            txHash = opId
+          }
+        }
+      } catch (err: any) {
+        console.warn("Error getting UserOperation receipt:", err)
+        console.warn("Using UserOperation hash as transaction identifier")
+        txHash = opId
+      }
+
+      console.log("Final transaction hash:", txHash)
+      
       const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
         let binary = ""
         for (let i = 0; i < bytes.byteLength; i++) {
@@ -196,19 +527,34 @@ export default function IssuePage() {
         throw new Error("PDF base64 encoding verification failed.")
       }
 
+      // Store UserOperation details for display
+      const userOpDetails = receipt ? {
+        sender: receipt.sender || receipt.userOp?.sender || finalSmartAddress,
+        paymaster: receipt.paymaster || receipt.userOp?.paymaster || null,
+        beneficiary: receipt.receipt?.from || receipt.beneficiary || null,
+        gasUsed: receipt.actualGasUsed || receipt.receipt?.gasUsed || null,
+        success: receipt.success !== false,
+      } : {
+        sender: finalSmartAddress,
+        paymaster: sendResult?.request?.paymaster || null,
+        beneficiary: null,
+        gasUsed: null,
+        success: true,
+      }
+
       await fetch("/api/certificates", {
         method: "POST",
         headers: { "content-type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          adminAddress: from,
+          adminAddress: finalSmartAddress,
           adminId: admin?.adminId || "",
           programId,
           studentName,
           studentId,
           date,
           hash,
-          txHash: receipt?.hash,
+          txHash: txHash,
           verifyUrl,
           pdfBase64: pdfBase64String,
           finalPdfHash,
@@ -217,10 +563,12 @@ export default function IssuePage() {
 
       setResult({
         hash,
-        txHash: receipt?.hash,
+        txHash: txHash,
+        userOpHash: opId,
         verifyUrl,
         pdfBase64: pdfBase64String,
         finalPdfHash,
+        userOpDetails,
       })
 
       document.body.removeChild(tempContainer)
@@ -250,12 +598,32 @@ export default function IssuePage() {
         </div>
       </div>
 
-      {/* Wallet Connection Card */}
-      <div className="mb-8 rounded-2xl bg-gradient-to-br from-slate-50 via-white to-slate-50/40 p-6 transition-all duration-300 hover:shadow-lg border border-slate-100/40 backdrop-blur-sm">
-        <WalletConnection showOnChainIssuer={true} showSwitchChain={true} />
-      </div>
+      {/* Warning if app session exists but Alchemy Account Kit not connected */}
+      {admin?.adminId && !signerStatus.isInitializing && (!user || !user.email) && (
+        <div className="mb-8 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-50/40 p-4 border border-blue-200/60 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-blue-900">Smart Wallet Required</p>
+            <p className="text-sm text-blue-800 mt-1">
+              Please connect your smart wallet to issue certificates. Click the button below to connect.
+            </p>
+            <button
+              onClick={() => {
+                try {
+                  openAuthModal()
+                } catch (err) {
+                  console.error("Failed to open auth modal:", err)
+                }
+              }}
+              className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
+            >
+              Connect Smart Wallet
+            </button>
+          </div>
+        </div>
+      )}
 
-      {programs.length === 0 && wallets.length > 0 && (
+      {programs.length === 0 && (
         <div className="mb-8 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-50/40 p-4 border border-amber-200/60 flex items-start gap-3">
           <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
@@ -356,7 +724,7 @@ export default function IssuePage() {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={loading || !wallets.length || !programId}
+            disabled={loading  || !programId}
             className="w-full h-11 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-blue-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <Award className="h-4 w-4" />
@@ -373,13 +741,110 @@ export default function IssuePage() {
                 <p className="font-semibold text-emerald-900">Certificate Issued Successfully</p>
                 <div className="mt-4 space-y-3">
                   <div className="rounded-lg bg-white/40 p-3">
-                    <p className="text-xs text-slate-500 font-medium">Hash</p>
-                    <code className="text-xs text-slate-700 font-mono break-all">{result.hash}</code>
+                    <p className="text-xs text-slate-500 font-medium">Certificate Hash</p>
+                    <div className="flex items-center gap-2 flex-wrap mt-1">
+                      <code className="text-xs text-slate-700 font-mono break-all">{result.hash}</code>
+                      {result.verifyUrl && (
+                        <a
+                          href={result.verifyUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium underline"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Verify Certificate
+                        </a>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">This is the SHA-256 hash of the certificate PDF</p>
                   </div>
                   <div className="rounded-lg bg-white/40 p-3">
-                    <p className="text-xs text-slate-500 font-medium">Transaction</p>
-                    <code className="text-xs text-slate-700 font-mono break-all">{result.txHash}</code>
+                    <p className="text-xs text-slate-500 font-medium">Transaction Hash</p>
+                    <div className="flex items-center gap-2 flex-wrap mt-1">
+                      <code className="text-xs text-slate-700 font-mono break-all">{result.txHash}</code>
+                      {result.txHash && result.txHash.startsWith('0x') && result.txHash.length === 66 && result.txHash !== result.userOpHash ? (
+                        <a
+                          href={`https://sepolia.arbiscan.io/tx/${result.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium underline"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          View on Arbiscan
+                        </a>
+                      ) : result.txHash === result.userOpHash ? (
+                        <span className="text-xs text-amber-600">⚠️ Waiting for transaction hash...</span>
+                      ) : (
+                        <a
+                          href={`https://sepolia.arbiscan.io/tx/${result.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium underline"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          View on Arbiscan
+                        </a>
+                      )}
+                    </div>
+                    {result.txHash === result.userOpHash && (
+                      <p className="text-xs text-amber-600 mt-1">⚠️ This is a UserOperation hash. Check Jiffyscan for the actual transaction hash.</p>
+                    )}
                   </div>
+                  {result.userOpHash && (
+                    <div className="rounded-lg bg-white/40 p-3">
+                      <p className="text-xs text-slate-500 font-medium">UserOperation Hash</p>
+                      <div className="flex items-center gap-2 flex-wrap mt-1">
+                        <code className="text-xs text-slate-700 font-mono break-all">{result.userOpHash}</code>
+                        <a
+                          href={`https://jiffyscan.xyz/userOpHash/${result.userOpHash}?network=arbitrum-sepolia`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium underline"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          View on Jiffyscan
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {result.userOpDetails && (
+                    <div className="rounded-lg bg-white/40 p-3">
+                      <p className="text-xs text-slate-500 font-medium mb-2">Gas Sponsorship Details</p>
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">Sender (Smart Account):</span>
+                          <code className="text-slate-700 font-mono">{result.userOpDetails.sender?.slice(0, 10)}...{result.userOpDetails.sender?.slice(-8)}</code>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">Paymaster:</span>
+                          <span className={result.userOpDetails.paymaster ? "text-emerald-600 font-medium" : "text-slate-500"}>
+                            {result.userOpDetails.paymaster 
+                              ? `${result.userOpDetails.paymaster.slice(0, 10)}...${result.userOpDetails.paymaster.slice(-8)} (Gas Sponsored)`
+                              : "None (Self-paid)"}
+                          </span>
+                        </div>
+                        {result.userOpDetails.beneficiary && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Beneficiary (Bundler):</span>
+                            <code className="text-slate-700 font-mono">{result.userOpDetails.beneficiary.slice(0, 10)}...{result.userOpDetails.beneficiary.slice(-8)}</code>
+                          </div>
+                        )}
+                        {result.userOpDetails.gasUsed && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Gas Used:</span>
+                            <span className="text-slate-700 font-mono">{BigInt(result.userOpDetails.gasUsed).toString()}</span>
+                          </div>
+                        )}
+                        <div className="mt-2 pt-2 border-t border-slate-200 text-xs text-slate-500">
+                          <p className="font-medium mb-1">💡 What are these?</p>
+                          <ul className="list-disc list-inside space-y-0.5 ml-1">
+                            <li><strong>Paymaster:</strong> Pays gas fees on your behalf (Alchemy)</li>
+                            <li><strong>Beneficiary:</strong> Receives transaction fees (Bundler)</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {result.pdfBase64 && (
                     <a
                       download={`certificate-${studentId || "cert"}.pdf`}

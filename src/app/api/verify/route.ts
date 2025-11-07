@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { ethers } from "ethers";
-import { CERTIFICATE_REGISTRY_ABI, CERTIFICATE_REGISTRY_ADDRESS } from "../../../lib/contract";
+import { CERTIFICATE_REGISTRY_ABI, NEXT_PUBLIC_CERT_REGISTRY_ADDRESS } from "../../../lib/contract";
 import { collection } from "../../../lib/db";
 import { ObjectId } from "mongodb";
 
@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const h = searchParams.get("h");
-    if (!h || !CERTIFICATE_REGISTRY_ADDRESS) {
+    if (!h || !NEXT_PUBLIC_CERT_REGISTRY_ADDRESS) {
       return new Response(JSON.stringify({ error: "Missing params" }), { status: 400 });
     }
 
@@ -18,12 +18,15 @@ export async function GET(req: NextRequest) {
     let revoked = false;
     let cert: any = { metadataURI: "", issuanceTimestamp: 0, revoked: false };
     try {
-      const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-      const contract = new ethers.Contract(CERTIFICATE_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, provider);
+      const provider = new ethers.JsonRpcProvider(process.env.ARBISCAN_API_KEY);
+      const contract = new ethers.Contract(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, provider);
       const statusTuple = await contract.isValid(h);
       valid = Boolean(statusTuple[0]);
       revoked = Boolean(statusTuple[1]);
       cert = await contract.getCertificate(h);
+      console.log("cert", cert)
+      console.log("valid", valid)
+      console.log("revoked", revoked)
     } catch (chainErr) {
       // Chain not reachable or wrong network; continue with DB fallback
       console.warn("Chain verification failed:", chainErr);
@@ -63,8 +66,8 @@ export async function GET(req: NextRequest) {
       // If we didn't have a valid/ revoked status yet, or chain said not found, try again with the chainHash
       if (!valid && !revoked && chainHash) {
         try {
-          const provider2 = new ethers.JsonRpcProvider(process.env.RPC_URL);
-          const contract2 = new ethers.Contract(CERTIFICATE_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, provider2);
+          const provider2 = new ethers.JsonRpcProvider(process.env.ARBISCAN_API_KEY);
+          const contract2 = new ethers.Contract(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, provider2);
           const statusTuple2 = await contract2.isValid(chainHash);
           valid = Boolean(statusTuple2[0]);
           revoked = Boolean(statusTuple2[1]);

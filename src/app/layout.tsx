@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import {  Cairo, Poppins, Saira } from "next/font/google";
 import "./globals.css";
 import PrivyProvider from "../providers/PrivyProvider";
-import Footer from "@/components/Footer";
-import Navbar from "@/components/Navbar/Navbar";
+import { Providers } from "../providers/AlchemyWallet";
+import { cookieToInitialState } from "@account-kit/core";
+import { config } from "../../config.ts";
+import { headers } from "next/headers";
 
 
 const saira = Saira({
@@ -33,21 +35,20 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://unlicerti.example.com"),
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const initialState = cookieToInitialState(
+    config,
+    headersList.get("cookie") ?? undefined,
+  );
   return (
     <html lang="en">
       <body className={`${cairo.variable} ${poppins.variable} ${saira.variable} antialiased`}>
-        <PrivyProvider>
-          {/* <Navbar />
-          <main className="min-h-[calc(100vh-64px)]">{children}</main>
-          <Footer /> */}
-          <Navbar/>
-          {children}
-        </PrivyProvider>
+      <Providers initialState={initialState}>{children}</Providers>
       </body>
     </html>
   );

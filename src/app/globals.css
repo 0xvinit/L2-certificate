@@ -1,9 +1,11 @@
 @import "tailwindcss";
+@config '../../tailwind.config.ts';
 
 :root {
   --background: #FFF; /* main light */
   --foreground: #000000;
 }
+
 
 @theme inline {
   --color-background: var(--background);
