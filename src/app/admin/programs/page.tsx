@@ -396,27 +396,6 @@ export default function ProgramsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold border-2 ${
-                          p.isActive
-                            ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                            : "bg-slate-100 text-slate-600 border-slate-200"
-                        }`}
-                      >
-                        {p.isActive ? "Active" : "Inactive"}
-                      </div>
-                      <button
-                        onClick={() => toggleActive(p._id, p.isActive)}
-                        className="rounded-xl px-4 py-3 transition-all duration-300 hover:scale-110 hover:bg-sky-50"
-                      >
-                        {p.isActive ? (
-                          <ToggleRight className="h-7 w-7 text-emerald-600" />
-                        ) : (
-                          <ToggleLeft className="h-7 w-7 text-slate-400" />
-                        )}
-                      </button>
-                    </div>
                   </div>
                 </div>
               ))}

@@ -101,7 +101,7 @@ export default function AdminsPage() {
             Manage Admins
           </h1>
           <p className="mt-4 text-lg text-gray-700 font-poppins max-w-2xl mx-auto">
-            Add emails that can sign in with Google (Privy) and access admin
+            Add emails that can sign in with Google and access admin
             dashboard
           </p>
         </div>

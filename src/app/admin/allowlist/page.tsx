@@ -113,7 +113,7 @@ export default function AllowlistPage() {
             Admin Allowlist
           </h1>
           <p style={{ marginTop: 8, color: "#4a5568", fontSize: 14 }}>
-            Add emails that can sign in with Google (Privy) and access admin
+            Add emails that can sign in with Google and access admin
             dashboard.
           </p>
         </div>
