@@ -4,61 +4,113 @@ import { motion, AnimatePresence } from "framer-motion";
 import Header from "../UI/Header";
 import { HiStar } from "react-icons/hi2";
 import {
-  FaRocket,
+  FaDatabase,
+  FaReceipt,
+  FaFingerprint,
+  FaCubes,
+  FaFilePdf,
+  FaCheckCircle,
+  FaSearch,
+  FaLink,
+  FaKey,
+  FaCheckDouble,
   FaShieldAlt,
-  FaGlobe,
-  FaHandshake,
-  FaCog,
-  FaAward,
 } from "react-icons/fa";
 
 const WhyUs = () => {
+  const [activeTab, setActiveTab] = useState<"generation" | "verification">("generation");
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  const reasons = [
+  const generationSteps = [
     {
-      icon: FaRocket,
-      title: "Step 1: Admin Creates Program",
+      icon: FaDatabase,
+      title: "Program Data Creation",
       description:
-        "The admin begins by creating an academic or training program through the dashboard — defining details such as program name, duration, and certificate criteria.",
+        "The admin creates a program through the dashboard, adding details such as program name, duration, certificate criteria, and student information.",
       iconColor: "text-[#28aeec]",
     },
     {
-      icon: FaHandshake,
-      title: "Step 2: Student Enrolls & Completes Program",
+      icon: FaReceipt,
+      title: "Certificate Data Packet Generation",
       description:
-        "Students enroll in the program and complete the required coursework or training. Once they meet the criteria, they become eligible to receive a blockchain-verified certificate.",
+        "Once a student completes the program, the system generates a secure data packet containing the student's details, program information, and completion status.",
       iconColor: "text-[#28aeec]",
     },
     {
-      icon: FaAward,
-      title: "Step 3: Certificate Issuance",
+      icon: FaFingerprint,
+      title: "Digital Signing & Hash Generation",
       description:
-        "After successful completion, the admin issues a certificate to the student. Each certificate includes program details, student info, and performance data.",
+        "The system digitally signs the data packet using the platform's private key and generates a unique cryptographic hash — a digital fingerprint for each certificate. Any alteration invalidates the signature, ensuring authenticity.",
+      iconColor: "text-[#28aeec]",
+    },
+    {
+      icon: FaCubes,
+      title: "Blockchain Storage on Arbitrum",
+      description:
+        "The signed data packet is securely stored on the Arbitrum blockchain for immutability and cost efficiency, ensuring that the certificate data remains tamper-proof and permanently verifiable.",
+      iconColor: "text-[#28aeec]",
+    },
+    {
+      icon: FaFilePdf,
+      title: "PDF Creation & Signing",
+      description:
+        "A final PDF certificate is generated with visible details such as student name, program name, issue date, and certificate ID. It is then digitally signed by the platform to prevent any unauthorized modifications.",
+      iconColor: "text-[#28aeec]",
+    },
+    {
+      icon: FaCheckCircle,
+      title: "Final Output",
+      description:
+        "The final certificate includes two layers of protection — a blockchain record with a unique hash on Arbitrum and a digitally signed PDF file. Together, they make each certificate secure, verifiable, and tamper-proof.",
+      iconColor: "text-[#28aeec]",
+    },
+  ];
+  
+  const verificationSteps = [
+    {
+      icon: FaSearch,
+      title: "Hash Extraction",
+      description:
+        "The verification system extracts the unique certificate hash from the PDF or from the verification portal input.",
+      iconColor: "text-[#28aeec]",
+    },
+    {
+      icon: FaLink,
+      title: "Blockchain Record Retrieval",
+      description:
+        "Using this hash, the system fetches the corresponding certificate record stored on the Arbitrum blockchain.",
+      iconColor: "text-[#28aeec]",
+    },
+    {
+      icon: FaKey,
+      title: "Signature Validation",
+      description:
+        "The platform’s public key verifies the digital signature of the stored certificate data. If any alteration is detected, the signature check fails — confirming tampering.",
+      iconColor: "text-[#28aeec]",
+    },
+    {
+      icon: FaCheckDouble,
+      title: "Certificate Verification",
+      description:
+        "The system verifies that the certificate data and digital signatures match the record on Arbitrum, confirming that the certificate was issued by the authorized platform and remains unaltered.",
       iconColor: "text-[#28aeec]",
     },
     {
       icon: FaShieldAlt,
-      title: "Step 4: Blockchain Storage & Hash Generation",
+      title: "Result Display",
       description:
-        "The certificate data is securely stored on an L2 blockchain. A unique cryptographic hash is generated for each certificate, ensuring it cannot be altered or duplicated.",
-      iconColor: "text-[#28aeec]",
-    },
-    {
-      icon: FaGlobe,
-      title: "Step 5: Public Verification",
-      description:
-        "Anyone can verify the authenticity of a certificate by entering its unique hash in the public verification portal — instantly confirming its validity on-chain.",
-      iconColor: "text-[#28aeec]",
-    },
-    {
-      icon: FaCog,
-      title: "Step 6: Tamper-Proof & Permanent Records",
-      description:
-        "All issued certificates remain permanently verifiable on the blockchain, providing lifelong access and ensuring a tamper-proof record of achievement.",
+        "If both the blockchain and digital signature validations succeed, the certificate is confirmed as genuine. If any validation fails, it indicates that the document may be fake or altered.",
       iconColor: "text-[#28aeec]",
     },
   ];
+  
+
+  const currentSteps = activeTab === "generation" ? generationSteps : verificationSteps;
+
+  const handleTabChange = (tab: "generation" | "verification") => {
+    setActiveTab(tab);
+    setHoveredIndex(null);
+  };
 
   const calculatePosition = (index: number, total: number, radius: number) => {
     const angle = (index * 2 * Math.PI) / total - Math.PI / 2;
@@ -83,174 +135,208 @@ const WhyUs = () => {
           title="From Program Creation to On-Chain Verification"
         />
 
-        {/* Mobile Card Grid */}
+        {/* Tab Navigation */}
         <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="lg:hidden mb-16"
+          transition={{ duration: 0.5 }}
+          className="flex justify-center mb-12"
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
-            {reasons.map((reason, index) => {
-              const IconComponent = reason.icon;
-              return (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="group relative"
-                >
-                  <div className="relative bg-white/60 backdrop-blur-xl border-2 border-sky-100 rounded-3xl p-6 h-full hover:border-[#28aeec] hover:shadow-2xl hover:shadow-sky-200/30 transition-all duration-500 shadow-lg hover:bg-white/80">
-                    {/* Icon */}
-                    <div className="mb-4">
-                      <div className="w-16 h-16 rounded-full bg-linear-to-r from-[#28aeec] to-sky-400 p-4 transition-all duration-300 group-hover:scale-110 shadow-lg">
-                        <IconComponent className="w-full h-full text-white" />
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <h3 className="text-xl font-bold text-gray-900 mb-3 font-cairo group-hover:text-[#28aeec] transition-colors duration-300 uppercase">
-                      {reason.title}
-                    </h3>
-
-                    <p className="text-gray-700 leading-relaxed text-base font-poppins">
-                      {reason.description}
-                    </p>
-                  </div>
-                </motion.div>
-              );
-            })}
+          <div className="inline-flex bg-white/60 backdrop-blur-xl border-2 border-sky-100 rounded-full p-2 shadow-lg">
+            <button
+              onClick={() => handleTabChange("generation")}
+              className={`px-8 cursor-pointer py-3 rounded-full font-cairo font-bold uppercase transition-all duration-300 ${
+                activeTab === "generation"
+                  ? "bg-linear-to-r from-[#28aeec] to-sky-400 text-white shadow-lg"
+                  : "text-gray-600 hover:text-[#28aeec]"
+              }`}
+            >
+              Certificate Generation
+            </button>
+            <button
+              onClick={() => handleTabChange("verification")}
+              className={`px-8 cursor-pointer py-3 rounded-full font-cairo font-bold uppercase transition-all duration-300 ${
+                activeTab === "verification"
+                  ? "bg-linear-to-r from-[#28aeec] to-sky-400 text-white shadow-lg"
+                  : "text-gray-600 hover:text-[#28aeec]"
+              }`}
+            >
+              Certificate Verification
+            </button>
           </div>
         </motion.div>
 
-        {/* Circular Layout (desktop) */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className="hidden lg:block relative w-full h-[800px] my-16"
-        >
-          <div className="relative w-full h-full flex items-center justify-center">
-            {/* SVG Lines */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-              {reasons.map((_, index) => {
-                const centerX = 50;
-                const centerY = 50;
-                const radius = 35;
-                const position = calculatePosition(
-                  index,
-                  reasons.length,
-                  radius
-                );
-                const endX = centerX + position.x;
-                const endY = centerY + position.y;
-
+        {/* Mobile Card Grid */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6 }}
+            className="lg:hidden mb-16"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
+              {currentSteps.map((step, index) => {
+                const IconComponent = step.icon;
                 return (
-                  <motion.line
+                  <motion.div
                     key={index}
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    whileInView={{ pathLength: 1, opacity: 0.3 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.8, delay: 0.2 + index * 0.1 }}
-                    x1={`${centerX}%`}
-                    y1={`${centerY}%`}
-                    x2={`${endX}%`}
-                    y2={`${endY}%`}
-                    stroke="#28aeec"
-                    strokeWidth="2"
-                  />
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    className="group relative"
+                  >
+                    <div className="relative bg-white/60 backdrop-blur-xl border-2 border-sky-100 rounded-3xl p-6 h-full hover:border-[#28aeec] hover:shadow-2xl hover:shadow-sky-200/30 transition-all duration-500 shadow-lg hover:bg-white/80">
+                      {/* Icon */}
+                      <div className="mb-4">
+                        <div className="w-16 h-16 rounded-full bg-linear-to-r from-[#28aeec] to-sky-400 p-4 transition-all duration-300 group-hover:scale-110 shadow-lg">
+                          <IconComponent className="w-full h-full text-white" />
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <h3 className="text-xl font-bold text-gray-900 mb-3 font-cairo group-hover:text-[#28aeec] transition-colors duration-300 uppercase">
+                        {step.title}
+                      </h3>
+
+                      <p className="text-gray-700 leading-relaxed text-base font-poppins">
+                        {step.description}
+                      </p>
+                    </div>
+                  </motion.div>
                 );
               })}
-            </svg>
+            </div>
+          </motion.div>
+        </AnimatePresence>
 
-            {/* Center Circle */}
-            <motion.div
-              initial={{ scale: 0 }}
-              whileInView={{ scale: 1 }}
-              viewport={{ once: true }}
-              transition={{
-                duration: 0.6,
-                delay: 0.3,
-                type: "spring",
-                stiffness: 200,
-              }}
-              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10"
-            >
-              <div className="size-40 rounded-full bg-linear-to-br from-[#28aeec] to-sky-600 shadow-2xl shadow-sky-300/50 flex items-center justify-center border-4 border-white">
-                <p className="text-2xl font-bold text-white font-cairo uppercase text-center px-4 leading-tight">
-                  How It <br /> Works
-                </p>
-              </div>
-            </motion.div>
+        {/* Circular Layout (desktop) */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.8 }}
+            className="hidden lg:block relative w-full h-[800px] my-16"
+          >
+            <div className="relative w-full h-full flex items-center justify-center">
+              {/* SVG Lines */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                {currentSteps.map((_, index) => {
+                  const centerX = 50;
+                  const centerY = 50;
+                  const radius = 35;
+                  const position = calculatePosition(
+                    index,
+                    currentSteps.length,
+                    radius
+                  );
+                  const endX = centerX + position.x;
+                  const endY = centerY + position.y;
 
-            {/* Surrounding Circles */}
-            {reasons.map((reason, index) => {
-              const IconComponent = reason.icon;
-              const radius = 35;
-              const position = calculatePosition(index, reasons.length, radius);
+                  return (
+                    <motion.line
+                      key={index}
+                      initial={{ pathLength: 0, opacity: 0 }}
+                      animate={{ pathLength: 1, opacity: 0.3 }}
+                      transition={{ duration: 0.8, delay: 0.2 + index * 0.1 }}
+                      x1={`${centerX}%`}
+                      y1={`${centerY}%`}
+                      x2={`${endX}%`}
+                      y2={`${endY}%`}
+                      stroke="#28aeec"
+                      strokeWidth="2"
+                    />
+                  );
+                })}
+              </svg>
 
-              return (
-                <motion.div
-                  key={index}
-                  initial={{ scale: 0, opacity: 0 }}
-                  whileInView={{ scale: 1, opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{
-                    duration: 0.5,
-                    delay: 0.4 + index * 0.1,
-                    type: "spring",
-                    stiffness: 200,
-                  }}
-                  style={{
-                    position: "absolute",
-                    left: `calc(50% + ${position.x - 5}%)`,
-                    top: `calc(50% + ${position.y - 5}%)`,
-                    transform: "translate(-50%, -50%)",
-                    zIndex: hoveredIndex === index ? 100 : 20,
-                  }}
-                  onMouseEnter={() => setHoveredIndex(index)}
-                  onMouseLeave={() => setHoveredIndex(null)}
-                >
+              {/* Center Circle */}
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{
+                  duration: 0.6,
+                  delay: 0.3,
+                  type: "spring",
+                  stiffness: 200,
+                }}
+                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10"
+              >
+                <div className="size-40 rounded-full bg-linear-to-br from-[#28aeec] to-sky-600 shadow-2xl shadow-sky-300/50 flex items-center justify-center border-4 border-white">
+                  <p className="text-xl font-bold text-white font-cairo uppercase text-center px-4 leading-tight">
+                    {activeTab === "generation" ? "Generation" : "Verification"}
+                  </p>
+                </div>
+              </motion.div>
+
+              {/* Surrounding Circles */}
+              {currentSteps.map((step, index) => {
+                const IconComponent = step.icon;
+                const radius = 35;
+                const position = calculatePosition(index, currentSteps.length, radius);
+
+                return (
                   <motion.div
-                    whileHover={{ scale: 1.1 }}
-                    transition={{ duration: 0.3 }}
-                    className="relative"
+                    key={index}
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{
+                      duration: 0.5,
+                      delay: 0.4 + index * 0.1,
+                      type: "spring",
+                      stiffness: 200,
+                    }}
+                    style={{
+                      position: "absolute",
+                      left: `calc(50% + ${position.x - 5}%)`,
+                      top: `calc(50% + ${position.y - 5}%)`,
+                      transform: "translate(-50%, -50%)",
+                      zIndex: hoveredIndex === index ? 100 : 20,
+                    }}
+                    onMouseEnter={() => setHoveredIndex(index)}
+                    onMouseLeave={() => setHoveredIndex(null)}
                   >
-                    <div className="w-28 h-28 rounded-full bg-white shadow-xl shadow-sky-200/50 flex items-center justify-center cursor-pointer border-4 border-sky-100 hover:border-[#28aeec] transition-all duration-300">
-                      <IconComponent className="w-14 h-14 text-[#28aeec]" />
-                    </div>
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      transition={{ duration: 0.3 }}
+                      className="relative"
+                    >
+                      <div className="w-28 h-28 rounded-full bg-white shadow-xl shadow-sky-200/50 flex items-center justify-center cursor-pointer border-4 border-sky-100 hover:border-[#28aeec] transition-all duration-300">
+                        <IconComponent className="w-14 h-14 text-[#28aeec]" />
+                      </div>
 
-                    <AnimatePresence>
-                      {hoveredIndex === index && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.8, y: 10 }}
-                          transition={{ duration: 0.3 }}
-                          className="absolute top-full mt-4 left-1/2 transform -translate-x-1/2 w-80 z-50"
-                        >
-                          <div className="bg-white/95 backdrop-blur-xl border-2 border-[#28aeec]/50 rounded-2xl p-6 shadow-2xl shadow-sky-300/50">
-                            <h3 className="text-xl font-bold text-gray-900 mb-3 font-cairo uppercase">
-                              {reason.title}
-                            </h3>
-                            <p className="text-base text-gray-700 leading-relaxed font-poppins">
-                              {reason.description}
-                            </p>
-                            <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-t-2 border-l-2 border-[#28aeec]/50 rotate-45"></div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                      <AnimatePresence>
+                        {hoveredIndex === index && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                            transition={{ duration: 0.3 }}
+                            className="absolute top-full mt-4 left-1/2 transform -translate-x-1/2 w-80 z-50"
+                          >
+                            <div className="bg-white/95 backdrop-blur-xl border-2 border-[#28aeec]/50 rounded-2xl p-6 shadow-2xl shadow-sky-300/50">
+                              <h3 className="text-xl font-bold text-gray-900 mb-3 font-cairo uppercase">
+                                {step.title}
+                              </h3>
+                              <p className="text-base text-gray-700 leading-relaxed font-poppins">
+                                {step.description}
+                              </p>
+                              <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-t-2 border-l-2 border-[#28aeec]/50 rotate-45"></div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
                   </motion.div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        </AnimatePresence>
 
         {/* Stats Bar */}
         <motion.div

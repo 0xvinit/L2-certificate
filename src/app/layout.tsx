@@ -7,7 +7,7 @@ import { cookieToInitialState } from "@account-kit/core";
 import { config } from "../../config";
 import { headers } from "next/headers";
 import Footer from "@/components/Footer";
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/Navbar/Navbar";
 
 const saira = Saira({
   variable: "--font-saira",

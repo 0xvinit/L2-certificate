@@ -91,21 +91,17 @@ export default function LoginPage() {
   }, [user]);
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-[#2d4b59] via-[#1e3a47] to-[#2d4b59] relative overflow-hidden flex items-center justify-center">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-[20%] right-[10%] w-[400px] h-[400px] bg-[#28aeec]/20 blur-[120px] rounded-full animate-pulse" />
-        <div className="absolute bottom-[15%] left-[15%] w-[350px] h-[350px] bg-sky-400/15 blur-[100px] rounded-full animate-pulse delay-700" />
-        <div className="absolute top-[50%] left-[50%] w-[300px] h-[300px] bg-[#28aeec]/10 blur-[80px] rounded-full animate-pulse delay-1000" />
-      </div>
-
-      {/* Decorative linear line at top */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-transparent via-[#28aeec] to-transparent opacity-60" />
+    <div className="min-h-screen bg-linear-to-b from-white to-sky-50/30 relative overflow-hidden flex items-center justify-center">
+      {/* Background blur circles */}
+      <div className="absolute top-[8%] left-[5%] w-[240px] h-[240px] bg-sky-400/30 blur-3xl rounded-full z-0" />
+      <div className="absolute bottom-[15%] right-[8%] w-[220px] h-[220px] bg-sky-500/40 blur-3xl rounded-full z-0" />
+      <div className="absolute top-[45%] right-[12%] w-[180px] h-[180px] bg-blue-400/35 blur-3xl rounded-full z-0" />
+      <div className="absolute bottom-[40%] left-[15%] w-[160px] h-[160px] bg-sky-300/40 blur-3xl rounded-full z-0" />
 
       {/* Back to Home Button */}
       <Link
         href="/"
-        className="absolute top-6 left-6 z-20 flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#28aeec]/50 text-slate-300 hover:text-[#28aeec] transition-all duration-300 font-poppins text-sm backdrop-blur-sm"
+        className="absolute top-6 left-6 z-20 flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 hover:bg-white border-2 border-sky-100 hover:border-[#28aeec]/50 text-gray-700 hover:text-[#28aeec] transition-all duration-300 font-poppins text-sm backdrop-blur-xl shadow-lg"
       >
         <HomeIcon className="w-4 h-4" />
         Back to Home
@@ -113,33 +109,33 @@ export default function LoginPage() {
 
       {/* Main Login Card */}
       <div className="relative z-10 w-full max-w-md px-6">
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 md:p-10 shadow-2xl">
+        <div className="bg-white/60 backdrop-blur-xl border-2 border-sky-100 rounded-3xl p-8 md:p-10 shadow-2xl hover:shadow-sky-200/30 transition-all duration-500">
           {/* Logo and Header */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <div className="h-16 w-16 rounded-2xl bg-linear-to-br from-[#28aeec] to-sky-400 shadow-xl shadow-[#28aeec]/40 flex items-center justify-center animate-pulse">
+              <div className="h-16 w-16 rounded-2xl bg-linear-to-br from-[#28aeec] to-sky-400 shadow-xl shadow-sky-300/50 flex items-center justify-center">
                 <Shield className="w-8 h-8 text-white" />
               </div>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white font-cairo mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 font-cairo mb-2 uppercase">
               Admin Login
             </h1>
-            <p className="text-slate-300 text-sm md:text-base font-poppins">
+            <p className="text-gray-700 text-sm md:text-base font-poppins">
               Secure access to your certificate management dashboard
             </p>
           </div>
 
           {/* Features List */}
           <div className="mb-8 space-y-3">
-            <div className="flex items-center gap-3 text-slate-300 text-sm font-poppins">
+            <div className="flex items-center gap-3 text-gray-700 text-sm font-poppins">
               <CheckCircle className="w-5 h-5 text-[#28aeec] shrink-0" />
               <span>Blockchain-secured certificate management</span>
             </div>
-            <div className="flex items-center gap-3 text-slate-300 text-sm font-poppins">
+            <div className="flex items-center gap-3 text-gray-700 text-sm font-poppins">
               <CheckCircle className="w-5 h-5 text-[#28aeec] shrink-0" />
               <span>Real-time verification and tracking</span>
             </div>
-            <div className="flex items-center gap-3 text-slate-300 text-sm font-poppins">
+            <div className="flex items-center gap-3 text-gray-700 text-sm font-poppins">
               <Lock className="w-5 h-5 text-[#28aeec] shrink-0" />
               <span>Secure Google OAuth authentication</span>
             </div>
@@ -147,14 +143,14 @@ export default function LoginPage() {
 
           {/* Divider */}
           <div className="relative h-px mb-8">
-            <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-r from-transparent via-sky-200 to-transparent" />
           </div>
 
           {/* Login Button */}
           <button
             onClick={signInWithGoogle}
             disabled={loading}
-            className="w-full px-6 py-4 rounded-xl bg-linear-to-r from-[#28aeec] to-sky-400 text-white font-semibold text-base font-poppins hover:shadow-2xl hover:shadow-[#28aeec]/50 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-lg flex items-center justify-center gap-3 group"
+            className="w-full cursor-pointer px-6 py-4 rounded-xl bg-linear-to-r from-[#28aeec] to-sky-400 text-white font-semibold text-base font-poppins hover:shadow-2xl hover:shadow-[#28aeec]/50 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-lg flex items-center justify-center gap-3 group"
           >
             {loading ? (
               <>
@@ -179,27 +175,24 @@ export default function LoginPage() {
 
           {/* Error Message */}
           {error && (
-            <div className="mt-6 rounded-xl border border-red-400/50 bg-red-500/20 px-4 py-3 text-center text-sm text-red-200 font-poppins backdrop-blur-sm animate-shake">
+            <div className="mt-6 rounded-xl border-2 border-red-400/50 bg-red-50/80 px-4 py-3 text-center text-sm text-red-700 font-poppins backdrop-blur-sm shadow-lg">
               {error}
             </div>
           )}
 
           {/* Footer Note */}
-          <p className="mt-6 text-center text-xs text-slate-400 font-poppins">
+          <p className="mt-6 text-center text-xs text-gray-600 font-poppins">
             By signing in, you agree to our secure authentication process
           </p>
         </div>
 
         {/* Bottom Info */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-slate-400 font-poppins">
+          <p className="text-sm text-gray-700 font-poppins">
             Need access? Contact your system administrator
           </p>
         </div>
       </div>
-
-      {/* Decorative linear line at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-linear-to-r from-transparent via-[#28aeec] to-transparent opacity-60" />
     </div>
   );
 }

@@ -163,7 +163,7 @@ const Homepage = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 xs:gap-6 justify-center items-center">
-              <button
+              {/* <button
                 onClick={handleOpenApp}
                 className="group bg-linear-to-r from-white/20 to-sky-100/20 hover:bg-white/20 text-white font-medium px-6 py-3 lg:px-10 lg:py-5 rounded-full cursor-pointer font-poppins text-base xs:text-lg transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-sky-200/50 border-2 border-white/20 backdrop-blur-sm relative z-10 overflow-hidden uppercase"
               >
@@ -175,7 +175,19 @@ const Homepage = () => {
                 </span>
                 <div className="absolute inset-0 bg-linear-to-r from-sky-400/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute inset-0 bg-linear-to-r from-white/20 via-transparent to-sky-200/20 opacity-0 group-hover:opacity-100 transition-all duration-500 transform -translate-x-full group-hover:translate-x-0"></div>
-              </button>
+              </button> */}
+               <Link href="/login">
+                <button className="group bg-linear-to-r from-white/20 to-sky-100/20 hover:bg-white/20 text-white font-medium px-6 py-3 lg:px-10 lg:py-5 rounded-full cursor-pointer font-poppins text-base xs:text-lg transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-sky-200/50 border-2 border-white/20 backdrop-blur-sm relative z-10 overflow-hidden uppercase">
+                  <span className="relative z-10 flex items-center gap-2">
+                  Open App
+                    <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </span>
+                  <div className="absolute inset-0 bg-linear-to-r from-sky-400/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-linear-to-r from-white/20 via-transparent to-sky-200/20 opacity-0 group-hover:opacity-100 transition-all duration-500 transform -translate-x-full group-hover:translate-x-0"></div>
+                </button>
+              </Link>
               <Link href="/verify">
                 <button className="group bg-linear-to-r from-white/20 to-sky-100/20 hover:bg-white/20 text-white font-medium px-6 py-3 lg:px-10 lg:py-5 rounded-full cursor-pointer font-poppins text-base xs:text-lg transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-sky-200/50 border-2 border-white/20 backdrop-blur-sm relative z-10 overflow-hidden uppercase">
                   <span className="relative z-10 flex items-center gap-2">
