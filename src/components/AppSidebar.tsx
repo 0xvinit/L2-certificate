@@ -155,20 +155,7 @@ export default function AppSidebar() {
           ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
       >
-        {/* Header */}
-        <div className="p-6 border-b-2 border-sky-100 bg-linear-to-br from-[#28aeec]/10 to-sky-50/50">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-linear-to-br from-[#28aeec] to-sky-400 rounded-2xl flex items-center justify-center shadow-lg">
-              <Shield className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 font-cairo uppercase">
-                Patram
-              </h1>
-              <p className="text-xs text-gray-600 font-poppins">Admin Portal</p>
-            </div>
-          </div>
-        </div>
+        
 
         {/* Navigation */}
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
