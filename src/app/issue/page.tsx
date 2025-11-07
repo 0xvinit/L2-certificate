@@ -355,16 +355,58 @@ export default function IssuePage() {
       console.log("Client account:", (client as any)?.account)
       console.log("Client object:", client)
 
-      // Check if wallet is authorized on the contract; if not, block with clear message
-      try {
-        const isAuthorizedCheck = await (contractRO as any).isAuthorizedIssuer?.(finalSmartAddress)
-        if (isAuthorizedCheck === false) {
-          throw new Error("Your account is awaiting approval by the super admin. Please try again later.")
+      const checkAuthorizationOnChain = async (): Promise<boolean> => {
+        try {
+          if (typeof (contractRO as any).isAuthorizedIssuer === "function") {
+            return await (contractRO as any).isAuthorizedIssuer(finalSmartAddress)
+          }
+          if (typeof (contractRO as any).authorizedIssuers === "function") {
+            return await (contractRO as any).authorizedIssuers(finalSmartAddress)
+          }
+        } catch (authCheckErr) {
+          console.warn("Failed to read authorization status", authCheckErr)
+          // Fall through and allow flow to continue; we'll rely on backend for gating
         }
-      } catch (err: any) {
-        // If function not present in ABI, fall back to require super-admin has approved via UI; allow continue
-        if (err?.message?.includes("awaiting approval")) {
-          throw err
+        return true
+      }
+
+      let isAuthorized = await checkAuthorizationOnChain()
+
+      if (!isAuthorized) {
+        try {
+          const response = await fetch("/api/admin/authorize-wallet", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ walletAddress: finalSmartAddress })
+          })
+
+          const responseBody = await response.json().catch(() => ({}))
+
+          if (!response.ok) {
+            const message = responseBody?.error || "Your account is awaiting approval by the super admin. Please try again later."
+            throw new Error(message)
+          }
+
+          let attempts = 0
+          const maxAttempts = 5
+          const delayMs = 1500
+
+          while (attempts < maxAttempts) {
+            isAuthorized = await checkAuthorizationOnChain()
+            if (isAuthorized) {
+              break
+            }
+            attempts += 1
+            await new Promise(resolve => setTimeout(resolve, delayMs))
+          }
+
+          if (!isAuthorized) {
+            throw new Error("Authorization request submitted. Please try again in a few seconds once it is confirmed on-chain.")
+          }
+        } catch (authErr: any) {
+          const message = authErr?.message || "Your account is awaiting approval by the super admin. Please try again later."
+          throw new Error(message)
         }
       }
 

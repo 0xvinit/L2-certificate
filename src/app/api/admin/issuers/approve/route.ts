@@ -19,11 +19,11 @@ export async function POST(req: NextRequest) {
   const { walletAddress, adminId } = await req.json();
   if (!walletAddress) return new Response(JSON.stringify({ error: "Missing walletAddress" }), { status: 400 });
 
-  if (!process.env.RPC_URL || !process.env.OWNER_PRIVATE_KEY || !NEXT_PUBLIC_CERT_REGISTRY_ADDRESS) {
+  if (!process.env.NEXT_PUBLIC_RPC_URL || !process.env.OWNER_PRIVATE_KEY || !NEXT_PUBLIC_CERT_REGISTRY_ADDRESS) {
     return new Response(JSON.stringify({ error: "Server misconfigured" }), { status: 500 });
   }
 
-  const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+  const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
   const ownerWallet = new ethers.Wallet(process.env.OWNER_PRIVATE_KEY, provider);
   const contract = new ethers.Contract(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, ownerWallet);
 

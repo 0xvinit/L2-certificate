@@ -35,9 +35,9 @@ export async function POST(req: NextRequest) {
   );
   
   // Also update admin record with wallet address
-  const adminCol = await collection("admins");
-  await adminCol.updateOne(
-    { adminId: session.adminId },
+  const allowCol = await collection("adminAllowlist");
+  await allowCol.updateOne(
+    { email: session.adminId.toLowerCase() },
     { $set: { walletAddress: walletAddress.toLowerCase(), updatedAt: now } }
   );
   

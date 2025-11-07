@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   return new Response(JSON.stringify({
     adminId: allowed.email,
     isSuperAdmin: !!allowed.isSuperAdmin,
-    walletAddress: ""
+    walletAddress: allowed.walletAddress || ""
   }), { headers: { "content-type": "application/json" } });
 }
 

@@ -28,66 +28,159 @@ const CERTIFICATE_REGISTRY_ABI = [
   }
 ] as const;
 
+type AuthorizeWalletPayload = {
+  walletAddress?: string;
+  adminId?: string;
+};
+
 export async function POST(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
-  if (!token) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  if (!token) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
 
   const session = verifySession(token);
-  if (!session) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  if (!session) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
 
-  // Only super admins can authorize issuers
+  const { walletAddress, adminId }: AuthorizeWalletPayload = await req.json();
+  if (!walletAddress || typeof walletAddress !== "string") {
+    return new Response(JSON.stringify({ error: "Missing walletAddress" }), { status: 400 });
+  }
+
+  let checksumAddress: string;
+  try {
+    checksumAddress = ethers.getAddress(walletAddress);
+  } catch (err) {
+    return new Response(JSON.stringify({ error: "Invalid wallet address" }), { status: 400 });
+  }
+
+  const sessionAdminId = String(session.adminId).toLowerCase();
+  const rawRequestedAdminId = adminId ? String(adminId) : undefined;
+  const requestedAdminId = rawRequestedAdminId ? rawRequestedAdminId.toLowerCase() : undefined;
+  const targetAdminId = session.isSuperAdmin && requestedAdminId ? requestedAdminId : sessionAdminId;
+  const isSelfRequest = targetAdminId === sessionAdminId;
+
+  if (!session.isSuperAdmin && !isSelfRequest) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+  }
+
   const allowCol = await collection("adminAllowlist");
-  const me = await allowCol.findOne({ email: String(session.adminId).toLowerCase(), status: { $in: ["active", "pending"] } }) as any;
-  if (!me || !me.isSuperAdmin) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+  const allowlisted = await allowCol.findOne({
+    email: targetAdminId,
+    status: { $in: ["active", "pending"] }
+  }) as any;
 
-  const { walletAddress } = await req.json();
-  if (!walletAddress) return new Response(JSON.stringify({ error: "Missing walletAddress" }), { status: 400 });
+  if (!allowlisted) {
+    return new Response(JSON.stringify({ error: "Admin is not allowlisted" }), { status: 403 });
+  }
 
-  // Verify target wallet belongs to an allowed admin (optional soft check)
+  const normalizedAddress = checksumAddress.toLowerCase();
   const walletCol = await collection("walletConnections");
-  const existing = await walletCol.findOne({ walletAddress: String(walletAddress).toLowerCase() }) as any;
-  if (!existing) return new Response(JSON.stringify({ error: "Wallet not found" }), { status: 404 });
+  const adminIdCandidates = Array.from(
+    new Set(
+      [targetAdminId, session.adminId, rawRequestedAdminId]
+        .filter((val): val is string => !!val)
+    )
+  );
 
-  // Check if wallet is already authorized on-chain
-  if (!process.env.RPC_URL || !NEXT_PUBLIC_CERT_REGISTRY_ADDRESS) {
+  let walletRecord = await walletCol.findOne({
+    adminId: { $in: adminIdCandidates },
+    walletAddress: normalizedAddress
+  }) as any;
+
+  if (!walletRecord) {
+    const now = new Date().toISOString();
+
+    const insertDoc = {
+      adminId: targetAdminId,
+      walletAddress: normalizedAddress,
+      chainId: null,
+      walletType: "auto",
+      connectedAt: now,
+      lastActiveAt: now,
+      pending: true,
+      authorizedOnChain: false,
+      createdAt: now,
+      updatedAt: now
+    } as any;
+
+    const inserted = await walletCol.insertOne(insertDoc);
+
+    walletRecord = {
+      _id: inserted.insertedId,
+      ...insertDoc
+    };
+
+    try {
+      await allowCol.updateOne(
+        { email: targetAdminId },
+        {
+          $set: {
+            walletAddress: normalizedAddress,
+            updatedAt: now
+          }
+        }
+      );
+    } catch (adminUpdateErr) {
+      console.warn("Failed to update allowlist record for wallet", adminUpdateErr);
+    }
+  }
+
+  if (!process.env.NEXT_PUBLIC_RPC_URL || !NEXT_PUBLIC_CERT_REGISTRY_ADDRESS) {
     return new Response(JSON.stringify({ error: "Server misconfigured" }), { status: 500 });
   }
 
-  const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-  const contract = new ethers.Contract(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, provider);
+  if (!process.env.OWNER_PRIVATE_KEY) {
+    return new Response(JSON.stringify({ error: "Owner private key not configured" }), { status: 500 });
+  }
+
+  const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+  const ownerWallet = new ethers.Wallet(process.env.OWNER_PRIVATE_KEY, provider);
+  const contract = new ethers.Contract(
+    NEXT_PUBLIC_CERT_REGISTRY_ADDRESS,
+    CERTIFICATE_REGISTRY_ABI,
+    ownerWallet
+  );
 
   try {
-    const isAuthorized = await contract.isAuthorizedIssuer(walletAddress);
+    let isAuthorized = false;
+    if (typeof contract.isAuthorizedIssuer === "function") {
+      isAuthorized = await contract.isAuthorizedIssuer(checksumAddress);
+    } else if (typeof (contract as any).authorizedIssuers === "function") {
+      isAuthorized = await (contract as any).authorizedIssuers(checksumAddress);
+    }
+
     if (isAuthorized) {
-      // Update DB flags anyway
       await walletCol.updateMany(
-        { walletAddress: String(walletAddress).toLowerCase() },
+        { adminId: { $in: adminIdCandidates }, walletAddress: normalizedAddress },
         { $set: { authorizedOnChain: true, pending: false, updatedAt: new Date().toISOString() } }
       );
-      return new Response(JSON.stringify({ ok: true, alreadyAuthorized: true }), { headers: { "content-type": "application/json" } });
+      return new Response(
+        JSON.stringify({ ok: true, alreadyAuthorized: true }),
+        { headers: { "content-type": "application/json" } }
+      );
     }
 
-    // Authorize wallet on-chain (requires owner's private key)
-    if (!process.env.OWNER_PRIVATE_KEY) {
-      return new Response(JSON.stringify({ error: "Owner private key not configured" }), { status: 500 });
-    }
+    const tx = await contract.authorizeIssuer(checksumAddress);
+    const receipt = await tx.wait();
 
-    const wallet = new ethers.Wallet(process.env.OWNER_PRIVATE_KEY, provider);
-    const contractWithSigner = new ethers.Contract(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, wallet);
-    
-    const tx = await contractWithSigner.authorizeIssuer(walletAddress);
-    await tx.wait();
-
-    // Update DB flags
     await walletCol.updateMany(
-      { walletAddress: String(walletAddress).toLowerCase() },
+      { adminId: { $in: adminIdCandidates }, walletAddress: normalizedAddress },
       { $set: { authorizedOnChain: true, pending: false, updatedAt: new Date().toISOString() } }
     );
 
-    return new Response(JSON.stringify({ ok: true, txHash: tx.hash }), { headers: { "content-type": "application/json" } });
+    return new Response(
+      JSON.stringify({ ok: true, txHash: receipt?.hash || tx.hash, autoAuthorized: isSelfRequest && !session.isSuperAdmin }),
+      { headers: { "content-type": "application/json" } }
+    );
   } catch (err: any) {
     console.error("Error authorizing wallet:", err);
-    return new Response(JSON.stringify({ error: err?.message || "Failed to authorize wallet" }), { status: 500 });
+    return new Response(
+      JSON.stringify({ error: err?.message || "Failed to authorize wallet" }),
+      { status: 500 }
+    );
   }
 }
 
