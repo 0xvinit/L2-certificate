@@ -92,7 +92,7 @@ export default function Footer() {
         <div className="pt-16 pb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12">
             {/* Brand section - Larger and more prominent */}
-            <div className="lg:col-span-4 space-y-6">
+            <div className="lg:col-span-5 space-y-6">
               <div className="flex items-center gap-3">
                 
                 <div>
@@ -112,7 +112,7 @@ export default function Footer() {
               </p>
 
               {/* Social Media Links */}
-              <div className="flex gap-3">
+              {/* <div className="flex gap-3">
                 <Link
                   href="#"
                   className="h-10 w-10 rounded-lg bg-white/5 hover:bg-[#28aeec]/20 border border-white/10 hover:border-[#28aeec]/50 flex items-center justify-center text-slate-300 hover:text-[#28aeec] transition-all duration-300 group"
@@ -137,11 +137,11 @@ export default function Footer() {
                 >
                   <Mail className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 </Link>
-              </div>
+              </div> */}
             </div>
 
             {/* Product links */}
-            <div className="lg:col-span-2 space-y-5">
+            <div className="lg:col-span-3 space-y-5">
               <div>
                 <h3 className="text-base font-bold text-white uppercase tracking-wider font-cairo mb-1">
                   Product
@@ -149,15 +149,6 @@ export default function Footer() {
                 <div className="h-0.5 w-12 bg-linear-to-r from-[#28aeec] to-transparent" />
               </div>
               <ul className="space-y-3 text-sm font-poppins">
-                <li>
-                  <Link
-                    href="/issue"
-                    className="flex items-center gap-2 text-slate-300 hover:text-[#28aeec] hover:translate-x-1 transition-all duration-200 group"
-                  >
-                    <FileText className="w-4 h-4 group-hover:scale-110 transition-transform text-[#28aeec]" />
-                    Issue Certificates
-                  </Link>
-                </li>
                 <li>
                   <Link
                     href="/verify"
@@ -174,45 +165,6 @@ export default function Footer() {
                   >
                     <RotateCcw className="w-4 h-4 group-hover:scale-110 transition-transform text-[#28aeec]" />
                     Revoke Certificate
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Admin links */}
-            <div className="lg:col-span-2 space-y-5">
-              <div>
-                <h3 className="text-base font-bold text-white uppercase tracking-wider font-cairo mb-1">
-                  Admin
-                </h3>
-                <div className="h-0.5 w-12 bg-linear-to-r from-[#28aeec] to-transparent" />
-              </div>
-              <ul className="space-y-3 text-sm font-poppins">
-                <li>
-                  <Link
-                    href="/admin/dashboard"
-                    className="flex items-center gap-2 text-slate-300 hover:text-[#28aeec] hover:translate-x-1 transition-all duration-200 group"
-                  >
-                    <Home className="w-4 h-4 group-hover:scale-110 transition-transform text-[#28aeec]" />
-                    Dashboard
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/admin/programs"
-                    className="flex items-center gap-2 text-slate-300 hover:text-[#28aeec] hover:translate-x-1 transition-all duration-200 group"
-                  >
-                    <FileText className="w-4 h-4 group-hover:scale-110 transition-transform text-[#28aeec]" />
-                    Programs
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/admin/admins"
-                    className="flex items-center gap-2 text-slate-300 hover:text-[#28aeec] hover:translate-x-1 transition-all duration-200 group"
-                  >
-                    <Shield className="w-4 h-4 group-hover:scale-110 transition-transform text-[#28aeec]" />
-                    Admins
                   </Link>
                 </li>
               </ul>

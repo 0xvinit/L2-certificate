@@ -309,7 +309,7 @@ export default function VerifyPage() {
                 {new Date(data.issuanceTimestamp * 1000).toLocaleString()}
               </div>
             )}
-            {data?.certificate?.txHash && (
+            {/* {data?.certificate?.txHash && (
               <div className="mt-4 flex items-center gap-2 flex-wrap">
                 <ExternalLink className="h-4 w-4 text-[#28aeec]" />
                 <a
@@ -325,7 +325,7 @@ export default function VerifyPage() {
                   {data.certificate.txHash.slice(-8)})
                 </span>
               </div>
-            )}
+            )} */}
           </div>
         </div>
       )}

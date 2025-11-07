@@ -18,7 +18,7 @@ const KeyBenefits = () => {
       icon: FaShieldAlt,
       title: "Tamper-Proof Certificates",
       description:
-        "Each certificate is permanently stored on an L2 blockchain, secured with cryptographic hashing to prevent forgery or alteration.",
+        "Each certificate is permanently stored on an Arbitrum blockchain, secured with cryptographic hashing to prevent forgery or alteration.",
       iconColor: "text-[#28aeec]",
       delay: 0.2,
     },
@@ -40,9 +40,9 @@ const KeyBenefits = () => {
     },
     {
       icon: FaServer,
-      title: "L2 Blockchain Efficiency",
+      title: "Arbitrum Blockchain Efficiency",
       description:
-        "Built on a Layer-2 blockchain for scalability and cost efficiency — enabling large-scale certificate issuance with minimal gas fees.",
+        "Built on a Arbitrum blockchain for scalability and cost efficiency — enabling large-scale certificate issuance with minimal gas fees.",
       iconColor: "text-[#28aeec]",
       delay: 0.5,
     },
