@@ -158,6 +158,15 @@ export default function RevokePage() {
       });
       const opId = Array.isArray((sendResult as any)?.ids) ? (sendResult as any).ids[0] : String(sendResult);
       setTxHash(opId);
+      // Best-effort: mark revoked in DB to keep stats consistent
+      try {
+        await fetch('/api/revoke', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ hash, syncOnly: true })
+        });
+      } catch {}
       // Fetch certificate details after successful revocation if not already loaded
       if (!certificateData) {
         await fetchCertificateDetails(hash);

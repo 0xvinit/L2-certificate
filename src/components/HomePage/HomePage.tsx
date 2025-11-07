@@ -118,7 +118,7 @@ const Homepage = () => {
 
         // Poll for cookie
         let meOk = false
-        for (let i = 0; i < 12; i++) {
+        for (let i = 0; i < 3; i++) {
           const meResp = await fetch('/api/auth/me', { credentials: 'include', cache: 'no-store' as any })
           if (meResp.ok) { meOk = true; break }
           await new Promise(r => setTimeout(r, 300))
