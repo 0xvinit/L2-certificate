@@ -1,7 +1,9 @@
 "use client";
-import { config, queryClient } from "../../config.ts";
+import { config, queryClient } from "../../config";
 import {
+  // @ts-ignore
   AlchemyAccountProvider,
+  // @ts-ignore
   AlchemyAccountsProviderProps,
 } from "@account-kit/react";
 import { QueryClientProvider } from "@tanstack/react-query";

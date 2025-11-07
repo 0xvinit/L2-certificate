@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import {  Cairo, Poppins, Saira } from "next/font/google";
+import { Cairo, Poppins, Saira, Major_Mono_Display } from "next/font/google";
 import "./globals.css";
 import PrivyProvider from "../providers/PrivyProvider";
 import { Providers } from "../providers/AlchemyWallet";
 import { cookieToInitialState } from "@account-kit/core";
-import { config } from "../../config.ts";
+import { config } from "../../config";
 import { headers } from "next/headers";
-
+import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
 
 const saira = Saira({
   variable: "--font-saira",
@@ -22,17 +23,30 @@ const cairo = Cairo({
 const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"], 
+  weight: ["300", "400", "500", "600"],
+});
+
+const majorMono = Major_Mono_Display({
+  variable: "--font-major-mono",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 export const metadata: Metadata = {
-  title: {
-    default: "UniCerti — Digital University Certificates",
-    template: "%s — UniCerti",
-  },
+  title: "Patram — Decentralized Certificate Verification Platform",
   description:
-    "Issue, verify, and manage tamper-proof digital certificates for universities and institutions.",
-  metadataBase: new URL("https://unlicerti.example.com"),
+    "Patram is a decentralized certificate issuance and verification platform ensuring authenticity and transparency through blockchain technology. Admins can create academic or training programs, issue blockchain-secured certificates, and allow anyone to verify authenticity via unique on-chain hashes.",
+  metadataBase: new URL("https://Patram.vercel.app"),
+  keywords: [
+    "Patram",
+    "Blockchain Certificates",
+    "Decentralized Verification",
+    "Digital Credentials",
+    "Web3 Education",
+    "L2 Blockchain",
+    "Certificate Authentication",
+    "Tamper-proof Certificates",
+  ],
 };
 
 export default async function RootLayout({
@@ -47,8 +61,11 @@ export default async function RootLayout({
   );
   return (
     <html lang="en">
-      <body className={`${cairo.variable} ${poppins.variable} ${saira.variable} antialiased`}>
-      <Providers initialState={initialState}>{children}</Providers>
+      <body
+        className={`${cairo.variable} ${majorMono.variable} ${poppins.variable} ${saira.variable} antialiased`}
+      >
+        <Providers initialState={initialState}><Navbar />{children}<Footer /></Providers>
+
       </body>
     </html>
   );

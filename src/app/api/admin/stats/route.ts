@@ -4,8 +4,16 @@ import { verifySession } from "../../../../lib/auth";
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
+  const allCookies = req.cookies.getAll();
+  
+  console.log("Stats API - Token:", token ? "exists" : "undefined");
+  console.log("Stats API - All cookies:", allCookies.map(c => c.name));
+  
   const session = token ? verifySession(token) : null;
-  if (!session) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  if (!session) {
+    console.log("Stats API - No valid session");
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
 
   const { searchParams } = new URL(req.url);
   const queryAdminId = (searchParams.get("adminId") || "").toLowerCase();

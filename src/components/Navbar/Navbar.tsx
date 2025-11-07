@@ -47,7 +47,10 @@ const Navbar = () => {
   useEffect(() => {
     if (ready && !authenticated) {
       // User logged out - clear session cookie
-      fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
+      fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      }).catch(() => {});
     }
   }, [ready, authenticated]);
 
@@ -62,7 +65,10 @@ const Navbar = () => {
   const handleDisconnect = async () => {
     try {
       // First clear the session cookie
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
     } catch (error) {
       console.error("Error clearing session:", error);
     }
@@ -86,16 +92,20 @@ const Navbar = () => {
     <>
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          !isHomePage || isScrolled ? "bg-black/20 backdrop-blur-md" : ""
+          !isHomePage || isScrolled ? "bg-[#325164]/60 backdrop-blur-md" : ""
         }`}
       >
         <div className="mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center">
-              <Link href="/" className="flex items-center space-x-2 group">
-                <span className="bg-linear-to-r from-white via-sky-200 to-sky-400 bg-clip-text text-transparent text-4xl font-cairo">
-                  ChainGrad
+              <Link
+                href="/"
+                className="flex items-center space-x-2 group font-major-mono"
+              >
+                {/* bg-linear-to-r from-white via-sky-200 to-sky-400 bg-clip-text text-transparent */}
+                <span className="bg-linear-to-r from-white via-sky-200 to-sky-400 bg-clip-text text-transparent text-4xl font-bold tracking-tighter">
+                  Patram
                 </span>
               </Link>
             </div>
@@ -188,7 +198,7 @@ const Navbar = () => {
               border border-[#28aeec]/40 hover:border-[#28aeec]/80 hover:shadow-lg hover:shadow-[#28aeec]/30 cursor-pointer font-poppins"
                         >
                           <IoLogOut className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
-                          <span className="font-medium">Disconnect Wallet</span>
+                          <span className="font-medium">Logout</span>
                         </button>
                       </div>
                     </div>
@@ -207,7 +217,7 @@ const Navbar = () => {
                 >
                   <span className="relative z-10 flex items-center gap-2.5">
                     <IoWallet className="w-5 h-5 transition-all duration-300 group-hover:rotate-12 group-hover:scale-110" />
-                    <span className="hidden sm:block">Connect Wallet</span>
+                    <span className="hidden sm:block">Login</span>
                   </span>
 
                   {/* Shine sweep */}

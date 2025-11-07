@@ -3,9 +3,21 @@ import { useState } from "react";
 import AppShell from "@/components/AppShell";
 import { sha256HexBytes } from "../../lib/sha256";
 import CertificateTemplate from "@/components/CertificateTemplate";
-import { generatePDFFromHTML, addQRCodeToElement } from "../../lib/pdfGenerator";
+import {
+  generatePDFFromHTML,
+  addQRCodeToElement,
+} from "../../lib/pdfGenerator";
 import { createRoot } from "react-dom/client";
-import { Search, Download, ExternalLink, GraduationCap, Calendar, Hash, AlertCircle, FileText } from "lucide-react";
+import {
+  Search,
+  Download,
+  ExternalLink,
+  GraduationCap,
+  Calendar,
+  Hash,
+  AlertCircle,
+  FileText,
+} from "lucide-react";
 
 type Cert = {
   _id: string;
@@ -40,9 +52,12 @@ export default function StudentCertificatesPage() {
     setLoading(true);
     setHasSearched(true);
     try {
-      const res = await fetch(`/api/certificates?studentId=${encodeURIComponent(studentId.trim())}`);
+      const res = await fetch(
+        `/api/certificates?studentId=${encodeURIComponent(studentId.trim())}`
+      );
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Failed to load certificates");
+      if (!res.ok)
+        throw new Error(data?.error || "Failed to load certificates");
       setCerts(Array.isArray(data) ? data : []);
     } catch (err: any) {
       setError(err?.message || "Failed to load certificates");
@@ -57,23 +72,27 @@ export default function StudentCertificatesPage() {
     if (c.pdfBase64) {
       try {
         // Clean base64 string (remove any whitespace/newlines)
-        const cleanBase64 = c.pdfBase64.trim().replace(/\s/g, '');
-        const pdfBytes = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0));
-        
+        const cleanBase64 = c.pdfBase64.trim().replace(/\s/g, "");
+        const pdfBytes = Uint8Array.from(atob(cleanBase64), (c) =>
+          c.charCodeAt(0)
+        );
+
         // Verify hash matches
         const computedHash = await sha256HexBytes(pdfBytes);
         console.log("Stored hash:", c.hash);
         console.log("Computed hash from PDF:", computedHash);
         console.log("PDF size:", pdfBytes.length, "bytes");
-        
+
         if (computedHash.toLowerCase() !== c.hash.toLowerCase()) {
-          console.warn("Hash mismatch between stored PDF and on-chain hash. This is expected for certificates where the on-chain hash was computed before adding the QR code.");
+          console.warn(
+            "Hash mismatch between stored PDF and on-chain hash. This is expected for certificates where the on-chain hash was computed before adding the QR code."
+          );
           console.warn("Expected hash:", c.hash);
           console.warn("Got hash:", computedHash);
         } else {
           console.log("✓ Hash verified! PDF matches original.");
         }
-        
+
         const blob = new Blob([pdfBytes], { type: "application/pdf" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -93,11 +112,16 @@ export default function StudentCertificatesPage() {
 
     // Fallback: regenerate PDF using HTML template (for old certificates without stored PDF)
     try {
-      const gw = (process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://ipfs.io/ipfs/').replace(/\/?$/, '/');
-      const toHttp = (uri: string) => uri.startsWith('ipfs://') ? (gw + uri.replace('ipfs://','')) : uri;
-      
+      const gw = (
+        process.env.NEXT_PUBLIC_IPFS_GATEWAY || "https://ipfs.io/ipfs/"
+      ).replace(/\/?$/, "/");
+      const toHttp = (uri: string) =>
+        uri.startsWith("ipfs://") ? gw + uri.replace("ipfs://", "") : uri;
+
       const logoUrlHttp = c.programLogoUrl ? toHttp(c.programLogoUrl) : "";
-      const signatureUrlHttp = c.programSignatureUrl ? toHttp(c.programSignatureUrl) : "";
+      const signatureUrlHttp = c.programSignatureUrl
+        ? toHttp(c.programSignatureUrl)
+        : "";
 
       // Create a temporary container for the certificate
       const tempContainer = document.createElement("div");
@@ -127,7 +151,9 @@ export default function StudentCertificatesPage() {
         );
         // Wait for template to render
         setTimeout(() => {
-          const certificateElement = tempContainer.querySelector("#certificate-container") as HTMLElement;
+          const certificateElement = tempContainer.querySelector(
+            "#certificate-container"
+          ) as HTMLElement;
           if (certificateElement) {
             resolve();
           } else {
@@ -136,8 +162,11 @@ export default function StudentCertificatesPage() {
         }, 1000);
       });
 
-      const certificateElement = tempContainer.querySelector("#certificate-container") as HTMLElement;
-      if (!certificateElement) throw new Error("Failed to render certificate template");
+      const certificateElement = tempContainer.querySelector(
+        "#certificate-container"
+      ) as HTMLElement;
+      if (!certificateElement)
+        throw new Error("Failed to render certificate template");
 
       // Wait for all images to load
       await new Promise<void>((resolve) => {
@@ -169,12 +198,14 @@ export default function StudentCertificatesPage() {
       // Add QR code if verify URL is available
       if (c.verifyUrl) {
         await addQRCodeToElement(certificateElement, c.verifyUrl);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
       // Generate PDF from HTML
-      const pdfBlob = await generatePDFFromHTML(certificateElement, { returnBlob: true }) as Blob;
-      
+      const pdfBlob = (await generatePDFFromHTML(certificateElement, {
+        returnBlob: true,
+      })) as Blob;
+
       // Clean up
       document.body.removeChild(tempContainer);
 
@@ -195,33 +226,48 @@ export default function StudentCertificatesPage() {
 
   return (
     <AppShell>
-      <div className="mb-12">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight text-slate-900">Student Certificates</h1>
-          <p className="mt-2 text-slate-500">Enter your student ID to view and download your certificates</p>
+      {/* Background linear overlays */}
+      <div className="absolute top-[10%] left-[5%] w-[300px] h-[300px] bg-sky-400/20 blur-3xl opacity-100 rounded-full z-0 pointer-events-none" />
+      <div className="absolute bottom-[20%] right-[8%] w-[250px] h-[250px] bg-blue-400/25 blur-3xl opacity-100 rounded-full z-0 pointer-events-none" />
+
+      <div className="mb-12 relative z-10">
+        <div className="text-center">
+          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900 font-cairo uppercase">
+            Student Certificates
+          </h1>
+          <p className="mt-4 text-lg text-gray-700 font-poppins max-w-2xl mx-auto">
+            Enter your student ID to view and download your blockchain
+            certificates
+          </p>
         </div>
       </div>
 
       {/* Search Form */}
-      <div className="rounded-2xl bg-gradient-to-br from-slate-50 via-white to-slate-50/40 p-8 transition-all duration-300 hover:shadow-lg border border-slate-100/40 backdrop-blur-sm">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="rounded-full bg-blue-50 p-2.5">
-            <Search className="h-5 w-5 text-blue-600" />
+      <div className="rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-8 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 relative z-10">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="rounded-full bg-linear-to-br from-[#28aeec] to-sky-400 p-4 shadow-lg">
+            <Search className="h-7 w-7 text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">Search Certificates</h2>
-            <p className="text-sm text-slate-500 mt-0.5">Find your certificates by student ID</p>
+            <h2 className="text-2xl font-bold text-gray-900 font-cairo uppercase">
+              Search Certificates
+            </h2>
+            <p className="text-base text-gray-700 mt-1 font-poppins">
+              Find your certificates by student ID
+            </p>
           </div>
         </div>
-        
-        <form onSubmit={search} className="space-y-4">
+
+        <form onSubmit={search} className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Student ID</label>
-            <div className="flex gap-3">
+            <label className="block text-sm font-bold text-gray-700 mb-2 font-cairo uppercase">
+              Student ID
+            </label>
+            <div className="flex gap-4">
               <div className="relative flex-1">
-                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
-                  className="w-full h-12 pl-10 rounded-xl border border-slate-200/80 bg-white/50 px-4 text-sm outline-none transition-all focus:border-blue-300 focus:ring-4 focus:ring-blue-100/50"
+                  className="w-full h-14 pl-12 rounded-xl border-2 border-sky-100 bg-white px-4 text-base outline-none transition-all focus:border-[#28aeec] focus:ring-4 focus:ring-sky-100/50 font-poppins"
                   placeholder="Enter your Student ID"
                   value={studentId}
                   onChange={(e) => {
@@ -234,21 +280,27 @@ export default function StudentCertificatesPage() {
               </div>
               <button
                 disabled={loading}
-                className="h-12 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-blue-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="h-14 px-8 rounded-xl bg-linear-to-r from-[#28aeec] to-sky-400 text-white font-bold transition-all duration-300 hover:shadow-xl hover:shadow-sky-200/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-poppins text-lg uppercase hover:scale-105"
                 type="submit"
               >
-                <Search className="h-4 w-4" />
+                <Search className="h-6 w-6" />
                 {loading ? "Searching..." : "Search"}
               </button>
             </div>
           </div>
-          
+
           {error && (
-            <div className="rounded-xl bg-gradient-to-br from-red-50 to-red-50/40 p-4 border border-red-200/60 flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="rounded-2xl bg-linear-to-br from-red-50 to-red-50/40 p-6 border-2 border-red-200/60 flex items-start gap-4">
+              <div className="rounded-full bg-red-100 p-2">
+                <AlertCircle className="h-6 w-6 text-red-600 shrink-0" />
+              </div>
               <div>
-                <p className="font-semibold text-red-900">Error</p>
-                <p className="text-sm text-red-700 mt-1">{error}</p>
+                <p className="font-bold text-red-900 font-cairo text-lg uppercase">
+                  Error
+                </p>
+                <p className="text-base text-red-700 mt-2 font-poppins">
+                  {error}
+                </p>
               </div>
             </div>
           )}
@@ -257,70 +309,81 @@ export default function StudentCertificatesPage() {
 
       {/* Certificates List */}
       {certs.length > 0 && (
-        <div className="mt-8 rounded-2xl bg-gradient-to-br from-slate-50 via-white to-slate-50/40 p-8 transition-all duration-300 hover:shadow-lg border border-slate-100/40 backdrop-blur-sm">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-slate-900">Your Certificates</h2>
-            <p className="mt-1 text-sm text-slate-500">Found {certs.length} certificate{certs.length !== 1 ? 's' : ''}</p>
+        <div className="mt-8 rounded-3xl bg-white/60 backdrop-blur-xl border-2 border-sky-100 p-8 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-200/30 relative z-10">
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 font-cairo uppercase">
+              Your Certificates
+            </h2>
+            <p className="mt-2 text-base text-gray-700 font-poppins">
+              Found {certs.length} certificate{certs.length !== 1 ? "s" : ""}
+            </p>
           </div>
-          
-          <div className="grid gap-4">
+
+          <div className="grid gap-6">
             {certs.map((c) => (
               <div
                 key={c._id}
-                className="rounded-xl border border-slate-200/60 bg-white/50 p-6 transition-all duration-200 hover:shadow-md hover:border-blue-200/60"
+                className="rounded-2xl border-2 border-sky-100 bg-white/70 backdrop-blur-sm p-6 transition-all duration-300 hover:shadow-xl hover:shadow-sky-200/30 hover:border-[#28aeec]"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex-1 space-y-3">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                  <div className="flex-1 space-y-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">{c.studentName}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <GraduationCap className="h-4 w-4 text-slate-500" />
-                        <span className="text-sm font-semibold text-slate-700">
+                      <h3 className="text-2xl font-bold text-gray-900 font-cairo uppercase">
+                        {c.studentName}
+                      </h3>
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className="rounded-full bg-sky-100 p-2">
+                          <GraduationCap className="h-5 w-5 text-[#28aeec]" />
+                        </div>
+                        <span className="text-base font-semibold text-gray-800 font-poppins">
                           {c.programName}
                           {c.programCode && (
-                            <span className="ml-2 text-xs font-normal text-slate-500">({c.programCode})</span>
+                            <span className="ml-2 text-sm font-normal text-gray-600">
+                              ({c.programCode})
+                            </span>
                           )}
                         </span>
                       </div>
                     </div>
-                    
-                    <div className="flex flex-wrap items-center gap-4 text-sm">
+
+                    <div className="flex flex-wrap items-center gap-6">
                       {c.date && (
                         <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-slate-400" />
-                          <span className="text-slate-600">
-                            <span className="font-semibold">Issued:</span> {c.date}
+                          <Calendar className="h-5 w-5 text-gray-500" />
+                          <span className="text-sm text-gray-700 font-poppins">
+                            <span className="font-semibold">Issued:</span>{" "}
+                            {c.date}
                           </span>
                         </div>
                       )}
                       {c.hash && (
                         <div className="flex items-center gap-2">
-                          <Hash className="h-4 w-4 text-slate-400" />
-                          <code className="text-xs font-mono text-slate-500">
+                          <Hash className="h-5 w-5 text-gray-500" />
+                          <code className="text-sm font-mono text-gray-600">
                             {c.hash.slice(0, 10)}...{c.hash.slice(-8)}
                           </code>
                         </div>
                       )}
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2 sm:flex-col sm:items-stretch">
+
+                  <div className="flex flex-col gap-3">
                     {c.verifyUrl && (
                       <a
                         href={c.verifyUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-gradient-to-r from-blue-50 to-blue-50/40 text-blue-700 font-semibold transition-all duration-200 hover:shadow-md hover:from-blue-100 hover:to-blue-100/40 border border-blue-200/60"
+                        className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-xl bg-linear-to-r from-sky-50 to-sky-100 text-[#28aeec] font-bold transition-all duration-300 hover:shadow-lg hover:shadow-sky-200/50 border-2 border-sky-200 hover:border-[#28aeec] font-poppins uppercase"
                       >
-                        <ExternalLink className="h-4 w-4" />
+                        <ExternalLink className="h-5 w-5" />
                         Verify
                       </a>
                     )}
                     <button
                       onClick={() => downloadPdf(c)}
-                      className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-emerald-200/50"
+                      className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-xl bg-linear-to-r from-emerald-600 to-emerald-700 text-white font-bold transition-all duration-300 hover:shadow-xl hover:shadow-emerald-200/50 font-poppins uppercase hover:scale-105"
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-5 w-5" />
                       Download PDF
                     </button>
                   </div>
@@ -332,16 +395,20 @@ export default function StudentCertificatesPage() {
       )}
 
       {certs.length === 0 && !loading && hasSearched && (
-        <div className="mt-8 rounded-xl bg-gradient-to-br from-amber-50 to-amber-50/40 p-6 border border-amber-200/60 flex items-start gap-3">
-          <FileText className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+        <div className="mt-8 rounded-2xl bg-linear-to-br from-amber-50 to-amber-50/40 p-6 border-2 border-amber-200/60 flex items-start gap-4 relative z-10">
+          <div className="rounded-full bg-amber-100 p-2">
+            <FileText className="h-6 w-6 text-amber-600 shrink-0" />
+          </div>
           <div>
-            <p className="font-semibold text-amber-900">No Certificates Found</p>
-            <p className="text-sm text-amber-800 mt-1">No certificates found for student ID: {studentId}</p>
+            <p className="font-bold text-amber-900 font-cairo text-lg uppercase">
+              No Certificates Found
+            </p>
+            <p className="text-base text-amber-800 mt-2 font-poppins">
+              No certificates found for student ID: {studentId}
+            </p>
           </div>
         </div>
       )}
     </AppShell>
   );
 }
-
-
