@@ -2,17 +2,13 @@
 import { useState, useEffect } from "react";
 import type React from "react";
 
-import { ethers } from "ethers"
-import { CERTIFICATE_REGISTRY_ABI, NEXT_PUBLIC_CERT_REGISTRY_ADDRESS } from "../../lib/contract"
-import { sha256HexBytes } from "../../lib/sha256"
 // @ts-ignore - provided by Alchemy Account Kit at runtime
 import { useSendCalls, useSmartAccountClient, useAuthModal, useSignerStatus, useUser } from "@account-kit/react"
 import WalletConnection from "@/components/WalletConnection"
 import AppShell from "@/components/AppShell"
-import CertificateTemplate from "@/components/CertificateTemplate"
-import { generatePDFFromHTML, addQRCodeToElement } from "../../lib/pdfGenerator"
-import { createRoot } from "react-dom/client"
 import { AlertCircle, CheckCircle2, FileText, Award, ExternalLink } from "lucide-react"
+import { extractAddressFromDID } from "@/lib/did-utils"
+import { decodeBatchRegisterTx } from "@/lib/tx-decoder"
 
 export default function IssuePage() {
   const [studentName, setStudentName] = useState("");
@@ -77,31 +73,6 @@ export default function IssuePage() {
     } catch {}
   };
 
-  // Helper function to normalize hash to exactly bytes32 format (0x + 64 hex chars)
-  const normalizeHashToBytes32 = (hash: string): string => {
-    let normalized = hash.trim();
-    
-    // Remove 0x prefix if present
-    if (normalized.startsWith("0x")) {
-      normalized = normalized.slice(2);
-    }
-    
-    // Ensure exactly 64 hex characters (32 bytes)
-    if (normalized.length > 64) {
-      // If too long, truncate to 64 chars
-      normalized = normalized.slice(0, 64);
-    } else if (normalized.length < 64) {
-      // If too short, pad with zeros
-      normalized = normalized.padStart(64, '0');
-    }
-    
-    // Validate it's valid hex
-    if (!/^[0-9a-fA-F]{64}$/.test(normalized)) {
-      throw new Error(`Invalid hex string: ${normalized}`);
-    }
-    
-    return `0x${normalized}`;
-  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,28 +81,7 @@ export default function IssuePage() {
     setError("");
 
     try {
-      // Verify admin is authenticated via app session first
-      if (!admin || !admin.adminId) {
-        throw new Error(`You must be logged in as an admin to issue certificates`)
-      }
-
-      // Check if Alchemy Account Kit is initializing - wait a bit if user has app session
-      if (signerStatus.isInitializing) {
-        // Wait up to 5 seconds for initialization if user has app session
-        let waited = 0
-        while (signerStatus.isInitializing && waited < 5000) {
-          await new Promise(resolve => setTimeout(resolve, 500))
-          waited += 500
-        }
-        if (signerStatus.isInitializing) {
-          setError("Smart wallet is still initializing. Please wait a moment and try again.")
-          setLoading(false)
-          return
-        }
-      }
-
       // Check if user is authenticated with Alchemy Account Kit
-      // Prefer checking user object over signerStatus.isAuthenticated as it's more reliable for email login
       if (!user || !user.email) {
         setError("Please connect your smart wallet to continue")
         try { 
@@ -143,7 +93,7 @@ export default function IssuePage() {
         return
       }
 
-      // Get smart account address - wait a bit if not ready but user is authenticated
+      // Get smart account address
       let smartAddress = (client as any)?.account?.address as string | undefined
       if (!smartAddress && user) {
         // Wait up to 5 seconds for smart wallet to be ready
@@ -165,538 +115,339 @@ export default function IssuePage() {
         setLoading(false)
         return
       }
-      if (!NEXT_PUBLIC_CERT_REGISTRY_ADDRESS) throw new Error("Contract address missing")
-      if (!programId) throw new Error("Please select a program")
 
+      if (!programId) throw new Error("Please select a program")
       const selectedProgram = programs.find((p: any) => p._id === programId);
       if (!selectedProgram) throw new Error("Invalid program selected");
 
-      const universityName = admin?.university || "";
-
-      const gw = (
-        process.env.NEXT_PUBLIC_IPFS_GATEWAY || "https://ipfs.io/ipfs/"
-      ).replace(/\/?$/, "/");
-      const logoUrlHttp = selectedProgram.logoUrl?.startsWith("ipfs://")
-        ? gw + selectedProgram.logoUrl.replace("ipfs://", "")
-        : selectedProgram.logoUrl || "";
-      const signatureUrlHttp = selectedProgram.signatureUrl?.startsWith(
-        "ipfs://"
-      )
-        ? gw + selectedProgram.signatureUrl.replace("ipfs://", "")
-        : selectedProgram.signatureUrl || "";
-
-      const tempContainer = document.createElement("div");
-      tempContainer.style.position = "absolute";
-      tempContainer.style.left = "-9999px";
-      tempContainer.style.top = "0";
-      document.body.appendChild(tempContainer);
-
-      const root = createRoot(tempContainer);
-      await new Promise<void>((resolve) => {
-        root.render(
-          <CertificateTemplate
-            studentName={studentName || ""}
-            studentId={studentId || ""}
-            programName={selectedProgram.name || programName || ""}
-            programCode={selectedProgram.code || ""}
-            date={date || ""}
-            universityName={universityName || ""}
-            logoUrl={logoUrlHttp || ""}
-            signatureUrl={signatureUrlHttp || ""}
-            signatoryName={selectedProgram.signatoryName || ""}
-            signatoryTitle={selectedProgram.signatoryTitle || ""}
-          />
-        );
-        setTimeout(() => {
-          const certificateElement = tempContainer.querySelector(
-            "#certificate-container"
-          ) as HTMLElement;
-          if (certificateElement) {
-            resolve();
-          } else {
-            setTimeout(resolve, 500);
-          }
-        }, 1000);
-      });
-
-      const certificateElement = tempContainer.querySelector(
-        "#certificate-container"
-      ) as HTMLElement;
-      if (!certificateElement)
-        throw new Error("Failed to render certificate template");
-
-      await new Promise<void>((resolve) => {
-        const images = certificateElement.querySelectorAll("img");
-        let loaded = 0;
-        const total = images.length;
-        if (total === 0) {
-          resolve();
-          return;
-        }
-        images.forEach((img) => {
-          if (img.complete) {
-            loaded++;
-            if (loaded === total) resolve();
-          } else {
-            img.onload = () => {
-              loaded++;
-              if (loaded === total) resolve();
-            };
-            img.onerror = () => {
-              loaded++;
-              if (loaded === total) resolve();
-            };
-          }
-        });
-        setTimeout(resolve, 3000);
-      });
-
-      const baseUrl =
-        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-
-      const tempPdfBlob = (await generatePDFFromHTML(certificateElement, {
-        returnBlob: true,
-      })) as Blob;
-      const tempPdfBytes = new Uint8Array(await tempPdfBlob.arrayBuffer());
-      let tempHash = await sha256HexBytes(tempPdfBytes);
-      
-      // Normalize hash to ensure exactly 64 hex characters (32 bytes)
-      tempHash = normalizeHashToBytes32(tempHash);
-
-      const verifyUrl = `${baseUrl}/verify?h=${tempHash}`;
-      await addQRCodeToElement(certificateElement, verifyUrl);
-
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const finalPdfBlob = (await generatePDFFromHTML(certificateElement, {
-        returnBlob: true,
-      })) as Blob;
-      const finalPdfBytes = new Uint8Array(await finalPdfBlob.arrayBuffer());
-      const finalPdfHash = await sha256HexBytes(finalPdfBytes);
-
-      const hash = tempHash;
-
-      // Use read-only provider for contract reads
-      const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc"
-      const roProvider = new ethers.JsonRpcProvider(rpcUrl)
-      const contractRO = new ethers.Contract(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS, CERTIFICATE_REGISTRY_ABI, roProvider)
-
-      // Check if contract code exists at this address
-      const code = await roProvider.getCode(NEXT_PUBLIC_CERT_REGISTRY_ADDRESS)
-      if (!code || code === "0x") {
-        throw new Error(`No contract found at address ${NEXT_PUBLIC_CERT_REGISTRY_ADDRESS} on Polygon Amoy. Please verify:\n1. You are connected to Polygon Amoy network\n2. The contract address is correct\n3. The contract is deployed on Polygon Amoy`)
-      }
-
-      // Verify admin is authenticated (already checked via /api/auth/me, but verify again for safety)
-      if (!admin || !admin.adminId) {
-        throw new Error(`You must be logged in as an admin to issue certificates`)
-      }
-
-      // Ensure hash is in proper bytes32 format (0x + 64 hex chars)
-      // Use the normalize function to ensure exactly 64 hex characters
-      let hashBytes32: string;
-      try {
-        hashBytes32 = normalizeHashToBytes32(hash);
-        console.log("Normalized hashBytes32:", hashBytes32, "length:", hashBytes32.length);
-        
-        // Validate using ethers to ensure it's a proper hex string
-        hashBytes32 = ethers.hexlify(hashBytes32);
-        
-        // Final validation - must be exactly 66 characters (0x + 64 hex)
-        if (hashBytes32.length !== 66) {
-          throw new Error(`Hash must be exactly 66 characters (0x + 64 hex), got ${hashBytes32.length}: ${hashBytes32}`)
-        }
-      } catch (err: any) {
-        throw new Error(`Invalid hash format: ${err?.message || err}. Original hash: ${hash}`)
-      }
-
-      const existing = await contractRO.getCertificate(hashBytes32)
-      if (existing && existing.metadataURI && existing.metadataURI.length > 0) {
-        throw new Error("Certificate already registered for this hash");
-      }
-
-      const metadataURI = verifyUrl
-      
-      // Final check: Ensure account is still ready before sending transaction
-      // Wait for client to be ready with retries
-      let finalSmartAddress = (client as any)?.account?.address as string | undefined
-      let clientReady = false
-      let retries = 0
-      const maxRetries = 10
-      
-      while (!clientReady && retries < maxRetries) {
-        if (client && (client as any).account && (client as any).account.address) {
-          finalSmartAddress = (client as any).account.address
-          // Verify account is actually ready
-          if (finalSmartAddress) {
-            clientReady = true
-            break
-          }
-        }
-        if (!clientReady) {
-          await new Promise(resolve => setTimeout(resolve, 500))
-          retries++
-        }
-      }
-      
-      if (!client) {
-        throw new Error("Smart account client not available. Please refresh and try again.")
-      }
-      
-      if (!finalSmartAddress || !user || !user.email) {
-        throw new Error("Smart wallet session expired. Please refresh and try again.")
-      }
-      
-      if (!clientReady) {
-        throw new Error("Smart account client not ready. Please wait a moment and try again.")
-      }
-
-      console.log("Client ready, finalSmartAddress:", finalSmartAddress)
-      console.log("Client account:", (client as any)?.account)
-      console.log("Client object:", client)
-
-      const checkAuthorizationOnChain = async (): Promise<boolean> => {
-        try {
-          if (typeof (contractRO as any).isAuthorizedIssuer === "function") {
-            return await (contractRO as any).isAuthorizedIssuer(finalSmartAddress)
-          }
-          if (typeof (contractRO as any).authorizedIssuers === "function") {
-            return await (contractRO as any).authorizedIssuers(finalSmartAddress)
-          }
-        } catch (authCheckErr) {
-          console.warn("Failed to read authorization status", authCheckErr)
-          // Fall through and allow flow to continue; we'll rely on backend for gating
-        }
-        return true
-      }
-
-      let isAuthorized = await checkAuthorizationOnChain()
-
-      if (!isAuthorized) {
-        try {
-          const response = await fetch("/api/admin/authorize-wallet", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ walletAddress: finalSmartAddress })
-          })
-
-          const responseBody = await response.json().catch(() => ({}))
-
-          if (!response.ok) {
-            const message = responseBody?.error || "Your account is awaiting approval by the super admin. Please try again later."
-            throw new Error(message)
-          }
-
-          let attempts = 0
-          const maxAttempts = 5
-          const delayMs = 1500
-
-          while (attempts < maxAttempts) {
-            isAuthorized = await checkAuthorizationOnChain()
-            if (isAuthorized) {
-              break
-            }
-            attempts += 1
-            await new Promise(resolve => setTimeout(resolve, delayMs))
-          }
-
-          if (!isAuthorized) {
-            throw new Error("Authorization request submitted. Please try again in a few seconds once it is confirmed on-chain.")
-          }
-        } catch (authErr: any) {
-          const message = authErr?.message || "Your account is awaiting approval by the super admin. Please try again later."
-          throw new Error(message)
-        }
-      }
-
-      // Create contract interface for encoding transaction data
-      const contractInterface = new ethers.Interface(CERTIFICATE_REGISTRY_ABI)
-      console.log("contractInterface", contractInterface)
-      console.log("hashBytes32 before encoding:", hashBytes32, "length:", hashBytes32.length)
-      console.log("metadataURI:", metadataURI)
-      
-      // Ensure hashBytes32 is exactly bytes32 format for encoding
-      // Double-check it's exactly 66 characters
-      if (hashBytes32.length !== 66) {
-        throw new Error(`Hash must be exactly 66 characters before encoding, got ${hashBytes32.length}: ${hashBytes32}`)
-      }
-      
-      const txData = contractInterface.encodeFunctionData("register", [hashBytes32, metadataURI])
-      console.log("txData", txData, NEXT_PUBLIC_CERT_REGISTRY_ADDRESS)
-      
-      // Send via Alchemy Account Kit (gas sponsorship policy configured at provider level)
-      // Try both environment variable names for compatibility
-      const policyId = process.env.NEXT_PUBLIC_ALCHEMY_GAS_POLICY_ID || process.env.NEXT_PUBLIC_ALCHEMY_POLICY_ID
-      console.log("policyId", policyId)
-      console.log("Sending transaction with smart address:", finalSmartAddress)
-      console.log("Client available:", !!client)
-      console.log("Client account available:", !!(client as any)?.account)
-      
-      let sendResult: any
-      try {
-        // Ensure we're using the client's account context
-        if (!(client as any)?.account) {
-          throw new Error("Account not found in client. Please reconnect your wallet.")
-        }
-        
-        sendResult = await sendCallsAsync({
-          ...(policyId ? { capabilities: { paymasterService: { policyId } } } : {}),
-          calls: [
-            {
-              to: NEXT_PUBLIC_CERT_REGISTRY_ADDRESS,
-              data: txData,
-            } as any,
-          ],
-        })
-        console.log("sendResult", sendResult)
-        console.log("sendResult type:", typeof sendResult)
-        console.log("sendResult keys:", sendResult ? Object.keys(sendResult) : "null/undefined")
-        
-        // Log UserOperation request details if available
-        if (sendResult?.request) {
-          console.log("=== UserOperation Request Details ===")
-          console.log("Sender (Smart Account):", sendResult.request.sender)
-          console.log("Paymaster:", sendResult.request.paymaster || "None (self-paid)")
-          console.log("Call Data Length:", sendResult.request.callData?.length || 0)
-          console.log("Gas Limits:", {
-            callGasLimit: sendResult.request.callGasLimit,
-            verificationGasLimit: sendResult.request.verificationGasLimit,
-            preVerificationGas: sendResult.request.preVerificationGas,
-          })
-          console.log("Gas Prices:", {
-            maxFeePerGas: sendResult.request.maxFeePerGas,
-            maxPriorityFeePerGas: sendResult.request.maxPriorityFeePerGas,
-          })
-          console.log("=== End Request Details ===")
-        }
-      } catch (sendError: any) {
-        console.error("Error sending transaction:", sendError)
-        console.error("Error details:", {
-          name: sendError?.name,
-          message: sendError?.message,
-          stack: sendError?.stack,
-          client: !!client,
-          account: !!(client as any)?.account,
-        })
-        throw new Error(`Failed to send transaction: ${sendError?.message || String(sendError)}`)
-      }
-      
-      // Handle different possible return structures from sendCallsAsync
-      let opId: string
-      if (!sendResult) {
-        throw new Error("sendCallsAsync returned null or undefined")
-      } else if (Array.isArray((sendResult as any)?.ids)) {
-        opId = (sendResult as any).ids[0]
-      } else if ((sendResult as any)?.id) {
-        opId = String((sendResult as any).id)
-      } else if ((sendResult as any)?.hash) {
-        opId = String((sendResult as any).hash)
-      } else if (typeof sendResult === "string") {
-        opId = sendResult
-      } else {
-        // Try to stringify and extract any ID-like field
-        const resultStr = JSON.stringify(sendResult)
-        console.warn("Unexpected sendResult structure:", resultStr)
-        throw new Error(`Unexpected sendResult structure. Received: ${resultStr}`)
-      }
-      
-      console.log("opId extracted:", opId)
-      
-      if (!opId || opId === "undefined" || opId === "null") {
-        throw new Error("Failed to extract transaction ID from sendResult")
-      }
-
-      // Wait for UserOperation receipt and get the actual transaction hash
-      let txHash = opId // Fallback to UserOperation hash if we can't get tx hash
-      let receipt: any = null // Declare receipt outside try block for use later
-      try {
-        console.log("Waiting for UserOperation receipt for:", opId)
-        
-        // Use Alchemy's bundler endpoint for UserOperation receipts
-        // For Arbitrum Sepolia, use the appropriate bundler URL
-        const alchemyApiKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
-        if (!alchemyApiKey) {
-          console.warn("Alchemy API key not found. Cannot fetch UserOperation receipt.")
-          txHash = opId
-        } else {
-          // Alchemy bundler endpoint format: https://{network}.g.alchemy.com/v2/{apiKey}
-          // For Arbitrum Sepolia, we need to construct the bundler URL
-          const bundlerUrl = `https://arb-sepolia.g.alchemy.com/v2/${alchemyApiKey}`
-          
-          // Wait for UserOperation receipt with polling
-          let attempts = 0
-          const maxAttempts = 3 // Wait up to 60 seconds (1 second intervals)
-          
-          while (!receipt && attempts < maxAttempts) {
-            try {
-              // Use eth_getUserOperationReceipt RPC method on bundler endpoint
-              const response = await fetch(bundlerUrl, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  jsonrpc: "2.0",
-                  id: 1,
-                  method: "eth_getUserOperationReceipt",
-                  params: [opId],
-                }),
-              })
-              
-              const data = await response.json()
-              if (data.result) {
-                receipt = data.result
-                // Extract transaction hash from receipt - check multiple possible locations
-                const possibleTxHash = receipt.receipt?.transactionHash || 
-                                      receipt.transactionHash || 
-                                      receipt.receipt?.hash ||
-                                      receipt.logs?.[0]?.transactionHash ||
-                                      null
-                
-                if (possibleTxHash && possibleTxHash !== opId && possibleTxHash.startsWith('0x') && possibleTxHash.length === 66) {
-                  txHash = possibleTxHash
-                } else {
-                  console.warn("Could not extract valid transaction hash from receipt, structure:", Object.keys(receipt))
-                }
-                
-                // Log detailed UserOperation information
-                console.log("=== UserOperation Receipt Details ===")
-                console.log("UserOperation Hash:", opId)
-                console.log("Sender (Smart Account):", receipt.sender || receipt.userOp?.sender)
-                console.log("Paymaster Address:", receipt.paymaster || receipt.userOp?.paymaster || "None (self-paid)")
-                console.log("Beneficiary (Bundler):", receipt.receipt?.from || receipt.beneficiary || "N/A")
-                console.log("Receipt Structure:", Object.keys(receipt))
-                console.log("Receipt.receipt Structure:", receipt.receipt ? Object.keys(receipt.receipt) : "N/A")
-                console.log("Extracted Transaction Hash:", txHash)
-                console.log("Gas Used:", receipt.actualGasUsed || receipt.receipt?.gasUsed)
-                console.log("Success:", receipt.success !== false)
-                
-                console.log("\n📋 EXPLANATION:")
-                console.log("  • Sender: Your smart account that initiated the transaction")
-                console.log("  • Paymaster: The contract that PAID for your gas fees (Alchemy's paymaster)")
-                console.log("  • Beneficiary: The bundler address that RECEIVED the transaction fees")
-                console.log("  • Transaction Hash: The actual on-chain transaction")
-                
-                if (receipt.userOp) {
-                  console.log("UserOperation Details:", {
-                    sender: receipt.userOp.sender,
-                    nonce: receipt.userOp.nonce,
-                    callData: receipt.userOp.callData,
-                    callGasLimit: receipt.userOp.callGasLimit,
-                    verificationGasLimit: receipt.userOp.verificationGasLimit,
-                    preVerificationGas: receipt.userOp.preVerificationGas,
-                    maxFeePerGas: receipt.userOp.maxFeePerGas,
-                    maxPriorityFeePerGas: receipt.userOp.maxPriorityFeePerGas,
-                    paymaster: receipt.userOp.paymaster,
-                    paymasterData: receipt.userOp.paymasterData,
-                  })
-                }
-                
-                console.log("Full Receipt:", JSON.stringify(receipt, null, 2))
-                console.log("=== End UserOperation Details ===")
-                break
-              } else if (data.error && data.error.code !== -32000) {
-                // -32000 is "not found" which is expected while waiting
-                console.warn("RPC error:", data.error)
-              }
-            } catch (err) {
-              console.log(`Attempt ${attempts + 1}/${maxAttempts}: Waiting for receipt...`)
-            }
-            
-            if (!receipt) {
-              await new Promise(resolve => setTimeout(resolve, 1000))
-              attempts++
-            }
-          }
-          
-          if (!receipt) {
-            console.warn("Could not get UserOperation receipt within timeout. Using UserOperation hash.")
-            txHash = opId
-          }
-        }
-      } catch (err: any) {
-        console.warn("Error getting UserOperation receipt:", err)
-        console.warn("Using UserOperation hash as transaction identifier")
-        txHash = opId
-      }
-
-      console.log("Final transaction hash:", txHash)
-      
-      const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
-        let binary = "";
-        for (let i = 0; i < bytes.byteLength; i++) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-        return btoa(binary);
-      };
-
-      const pdfBase64String = uint8ArrayToBase64(finalPdfBytes);
-
-      const decodedBytes = Uint8Array.from(atob(pdfBase64String), (c) =>
-        c.charCodeAt(0)
-      );
-      if (decodedBytes.length !== finalPdfBytes.length) {
-        throw new Error("PDF base64 encoding verification failed.");
-      }
-
-      // Store UserOperation details for display
-      const userOpDetails = receipt ? {
-        sender: receipt.sender || receipt.userOp?.sender || finalSmartAddress,
-        paymaster: receipt.paymaster || receipt.userOp?.paymaster || null,
-        beneficiary: receipt.receipt?.from || receipt.beneficiary || null,
-        gasUsed: receipt.actualGasUsed || receipt.receipt?.gasUsed || null,
-        success: receipt.success !== false,
-      } : {
-        sender: finalSmartAddress,
-        paymaster: sendResult?.request?.paymaster || null,
-        beneficiary: null,
-        gasUsed: null,
-        success: true,
-      }
-
-      await fetch("/api/certificates", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        credentials: "include",
+      // Step 1: Call /api/issue to generate VCs and get transaction data
+      const apiRes = await fetch('/api/issue', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Include cookies for token authentication
         body: JSON.stringify({
-          adminAddress: finalSmartAddress,
-          adminId: admin?.adminId || "",
-          programId,
-          studentName,
-          studentId,
-          date,
-          hash,
-          txHash: txHash,
-          verifyUrl,
-          pdfBase64: pdfBase64String,
-          finalPdfHash,
+          students: [{
+            did: `did:ethr:student:${studentId || Date.now()}`,
+            name: studentName,
+            id: studentId,
+            program: selectedProgram.name,
+            date: date || new Date().toISOString().split('T')[0]
+          }],
+          uniDID: `did:ethr:${smartAddress}`,
+          walletAddress: smartAddress,
         }),
       });
 
+      const apiData = await apiRes.json();
+
+      if (!apiRes.ok) {
+        throw new Error(apiData.error || 'Failed to generate VCs');
+      }
+
+      // ========== VERIFICATION & LOGGING SECTION ==========
+      console.log("=".repeat(80));
+      console.log("📋 CERTIFICATE ISSUANCE - DETAILED BREAKDOWN");
+      console.log("=".repeat(80));
+
+      // 1. Student Information
+      console.log("\n👤 STUDENT INFORMATION:");
+      console.log("  - Name:", studentName);
+      console.log("  - Student ID:", studentId);
+      console.log("  - Program:", selectedProgram.name);
+      console.log("  - Date:", date || new Date().toISOString().split('T')[0]);
+
+      // 2. Generated DIDs
+      if (apiData.vcs && apiData.vcs.length > 0) {
+        console.log("\n🔐 GENERATED DIDs:");
+        apiData.vcs.forEach((vc: any, index: number) => {
+          const studentDID = vc.credentialSubject?.id;
+          console.log(`  Student ${index + 1} DID:`, studentDID);
+          
+          // Extract address from DID for verification
+          const extractedAddress = extractAddressFromDID(studentDID || '');
+          console.log(`  → Extracted Address from DID:`, extractedAddress);
+          
+          if (!extractedAddress) {
+            console.warn(`  ⚠️  Could not extract address from DID: ${studentDID}`);
+          }
+        });
+      }
+
+      // 3. What's STORED ON-CHAIN (in the contract)
+      console.log("\n⛓️  ON-CHAIN STORAGE (What's stored in the contract):");
+      console.log("  - DID Hashes (bytes32[]):", apiData.didHashes);
+      console.log("  - Merkle Roots (bytes32[]):", apiData.merkleRoots || Array(apiData.didHashes?.length || 0).fill(apiData.merkleRoot));
+      console.log("  - Merkle Root:", apiData.merkleRoot);
+      console.log("  - Contract Address:", apiData.transactionData?.to);
+      console.log("  - Function Called: batchRegister(bytes32[] didHashes, bytes32[] merkleRoots)");
+      console.log("  📝 Note: Only DID hashes and merkle roots are stored on-chain (minimal data)");
+
+      // 4. What's GENERATED (but not stored on-chain)
+      console.log("\n📄 GENERATED DATA (Not stored on-chain, stored off-chain/DB):");
+      console.log("  - Verifiable Credentials (VCs):", apiData.vcs?.length || 0, "VC(s)");
+      if (apiData.vcs && apiData.vcs.length > 0) {
+        console.log("  - VC Structure:", {
+          '@context': apiData.vcs[0]['@context'],
+          type: apiData.vcs[0].type,
+          issuer: apiData.vcs[0].issuer,
+          credentialSubject: {
+            id: apiData.vcs[0].credentialSubject?.id,
+            name: apiData.vcs[0].credentialSubject?.name,
+            program: apiData.vcs[0].credentialSubject?.program,
+            date: apiData.vcs[0].credentialSubject?.date
+          },
+          proof: {
+            type: apiData.vcs[0].proof?.type,
+            merkleRoot: apiData.vcs[0].proof?.merkleRoot,
+            proofPath: apiData.vcs[0].proof?.proofPath?.length || 0 + " proof(s)"
+          }
+        });
+      }
+      console.log("  - PDF Certificates:", apiData.pdfResults?.length || 0, "PDF(s)");
+      console.log("  - PDF Base64 Size:", apiData.pdfResults?.[0]?.pdfBase64?.length || 0, "characters");
+      console.log("  - Verify URLs:", apiData.pdfResults?.map((p: any) => p.verifyUrl) || []);
+
+      // 5. What's NOT NEEDED for core functionality (showcase only)
+      console.log("\n🎨 SHOWCASE DATA (Nice to have, not essential):");
+      console.log("  - PDF Base64 (can be regenerated from VC data):", apiData.pdfResults?.[0]?.pdfBase64 ? "Present" : "Not present");
+      console.log("  - Admin Info (for UI display only):", apiData.adminInfo ? "Present" : "Not present");
+      console.log("  - Verify URLs (convenience feature):", apiData.pdfResults?.[0]?.verifyUrl ? "Present" : "Not present");
+      console.log("  📝 Note: Core verification only needs DID hash and merkle root from blockchain");
+
+      // 6. Transaction Details
+      console.log("\n💸 TRANSACTION DETAILS:");
+      console.log("  - To:", apiData.transactionData?.to);
+      console.log("  - Data Length:", apiData.transactionData?.data?.length || 0, "characters");
+      console.log("  - Function:", apiData.transactionData?.functionName);
+      console.log("  - Parameters:", {
+        didHashes: apiData.transactionData?.params?.didHashes?.length || 0,
+        merkleRoots: apiData.transactionData?.params?.merkleRoots?.length || 0
+      });
+
+      // 7. Verification Summary
+      console.log("\n✅ VERIFICATION SUMMARY:");
+      console.log("  ✓ DID generated and address extracted");
+      console.log("  ✓ DID hash computed for on-chain storage");
+      console.log("  ✓ Merkle root computed from VCs");
+      console.log("  ✓ Transaction data prepared for contract");
+      console.log("  ✓ PDF and VC data generated for off-chain storage");
+      
+      console.log("\n" + "=".repeat(80));
+      console.log("📊 END OF BREAKDOWN");
+      console.log("=".repeat(80) + "\n");
+
+      // Step 2: Send transaction using Alchemy Account Kit (gasless)
+      // Check if on-chain registration should be skipped
+      let txHash = 'database_only';
+      let sendResult: any = null;
+      let usedPaymaster = false;
+      
+      if (apiData.skipOnChainRegistration) {
+        console.log('⚠️  Skipping on-chain registration:', apiData.message);
+        console.log('   Certificate will be stored in database only.');
+        // Certificate is already stored in database via /api/issue
+        // Skip transaction sending
+      } else if (!apiData.transactionData) {
+        throw new Error('No transaction data received from server');
+      } else {
+        // Log transaction details before sending
+        console.log('\n💸 SENDING TRANSACTION');
+        console.log('='.repeat(80));
+        console.log('To (Contract):', apiData.transactionData.to);
+        console.log('Function:', apiData.transactionData.functionName);
+        console.log('Function Selector:', apiData.transactionData.data.slice(0, 10));
+        console.log('Raw Data Length:', apiData.transactionData.data.length, 'characters');
+        
+        // Decode transaction data to show readable values
+        const decoded = decodeBatchRegisterTx(apiData.transactionData.data);
+        if (decoded) {
+          console.log('\n📋 DECODED PARAMETERS (What\'s actually being sent):');
+          console.log('  Function:', decoded.functionName);
+          console.log('  DID Hashes:');
+          decoded.readable.didHashes.forEach((p) => {
+            console.log(`    [${p.index}] ${p.hash}`);
+          });
+          console.log('  Merkle Roots:');
+          decoded.readable.merkleRoots.forEach((p) => {
+            console.log(`    [${p.index}] ${p.root}`);
+          });
+        }
+        
+        if (apiData.transactionData.explanation) {
+          console.log('\n💡 EXPLANATION:');
+          console.log('  Raw Hex Data:', apiData.transactionData.explanation.rawData.slice(0, 50) + '...');
+          console.log('  What is Raw Data?', apiData.transactionData.explanation.whatIsRawData);
+          console.log('  Function Selector:', apiData.transactionData.explanation.functionSelector);
+          console.log('\n  📦 What Gets Stored:');
+          console.log('    On-Chain:', apiData.transactionData.explanation.whatGetsStored.onChain.join(', '));
+          console.log('    Off-Chain:', apiData.transactionData.explanation.whatGetsStored.offChain.join(', '));
+        }
+        
+        console.log('\n✅ Transaction data is valid and ready to send');
+        console.log('='.repeat(80) + '\n');
+        // Proceed with on-chain registration
+        const policyId = process.env.NEXT_PUBLIC_ALCHEMY_GAS_POLICY_ID || process.env.NEXT_PUBLIC_ALCHEMY_POLICY_ID;
+
+        // Send transaction via Alchemy Account Kit
+        // Try with paymaster first, fallback to self-paid if any error occurs
+        if (policyId) {
+          try {
+            sendResult = await sendCallsAsync({
+              capabilities: { paymasterService: { policyId } },
+              calls: [
+                {
+                  to: apiData.transactionData.to,
+                  data: apiData.transactionData.data,
+                } as any,
+              ],
+            });
+            usedPaymaster = true;
+            console.log('Transaction sent successfully with paymaster');
+          } catch (paymasterError: any) {
+            // If paymaster fails with unauthorized, try without paymaster (self-paid)
+            const errorMessage = paymasterError?.message || paymasterError?.toString() || '';
+            const errorDetails = paymasterError?.details || '';
+            const errorString = JSON.stringify(paymasterError);
+            const fullError = `${errorMessage} ${errorDetails} ${errorString}`.toLowerCase();
+            
+            // Check for various unauthorized error patterns
+            const isUnauthorized = fullError.includes('unauthorized') || 
+                                  fullError.includes('401') ||
+                                  fullError.includes('internal error') ||
+                                  paymasterError?.code === 401 ||
+                                  paymasterError?.status === 401 ||
+                                  (paymasterError?.cause && JSON.stringify(paymasterError.cause).toLowerCase().includes('unauthorized')) ||
+                                  (paymasterError?.response && JSON.stringify(paymasterError.response).toLowerCase().includes('unauthorized'));
+            
+            console.log('Paymaster error details:', {
+              message: errorMessage,
+              details: errorDetails,
+              code: paymasterError?.code,
+              status: paymasterError?.status,
+              fullError: fullError,
+              isUnauthorized: isUnauthorized
+            });
+            
+            // Always try self-paid as fallback for any paymaster error
+            console.warn('Paymaster failed, trying without paymaster (self-paid):', paymasterError);
+            try {
+              sendResult = await sendCallsAsync({
+                calls: [
+                  {
+                    to: apiData.transactionData.to,
+                    data: apiData.transactionData.data,
+                  } as any,
+                ],
+              });
+              console.log('Self-paid transaction successful after paymaster error');
+            } catch (selfPaidError: any) {
+              console.error('Self-paid transaction also failed:', selfPaidError);
+              const selfPaidErrorMsg = selfPaidError?.message || selfPaidError?.toString() || '';
+              if (selfPaidErrorMsg.toLowerCase().includes('unauthorized') || 
+                  selfPaidErrorMsg.toLowerCase().includes('only authorized issuer')) {
+                // If user is admin, wallet should have been auto-authorized
+                // Suggest retrying as authorization might still be processing
+                if (admin?.adminId) {
+                  throw new Error(`Your wallet address (${smartAddress}) is not authorized. Authorization may still be processing. Please wait a moment and try again.`);
+                }
+                throw new Error(`Your wallet address (${smartAddress}) is not authorized to issue certificates. Please contact an admin to authorize your wallet address.`);
+              }
+              throw new Error(`Transaction failed: ${selfPaidErrorMsg || 'Unknown error'}. Please ensure your wallet has sufficient funds for gas.`);
+            }
+          }
+        } else {
+        // No policy ID, send as self-paid
+        try {
+          sendResult = await sendCallsAsync({
+            calls: [
+              {
+                to: apiData.transactionData.to,
+                data: apiData.transactionData.data,
+              } as any,
+            ],
+          });
+          console.log('Transaction sent successfully (self-paid, no paymaster policy)');
+        } catch (selfPaidError: any) {
+          console.error('Self-paid transaction failed:', selfPaidError);
+          const selfPaidErrorMsg = selfPaidError?.message || selfPaidError?.toString() || '';
+          if (selfPaidErrorMsg.toLowerCase().includes('unauthorized') || 
+              selfPaidErrorMsg.toLowerCase().includes('only authorized issuer')) {
+            // If user is admin, wallet should have been auto-authorized
+            // Suggest retrying as authorization might still be processing
+            if (admin?.adminId) {
+              throw new Error(`Your wallet address (${smartAddress}) is not authorized. Authorization may still be processing. Please wait a moment and try again.`);
+            }
+            throw new Error(`Your wallet address (${smartAddress}) is not authorized to issue certificates. Please contact an admin to authorize your wallet address.`);
+          }
+          throw new Error(`Transaction failed: ${selfPaidErrorMsg || 'Unknown error'}. Please ensure your wallet has sufficient funds for gas.`);
+        }
+        }
+      }
+
+      // Extract transaction hash from sendResult (if transaction was sent)
+      if (sendResult) {
+        if (Array.isArray((sendResult as any)?.ids)) {
+          txHash = (sendResult as any).ids[0];
+        } else if ((sendResult as any)?.id) {
+          txHash = String((sendResult as any).id);
+        } else if ((sendResult as any)?.hash) {
+          txHash = String((sendResult as any).hash);
+        } else if (typeof sendResult === "string") {
+          txHash = sendResult;
+        } else {
+          txHash = 'pending';
+        }
+      }
+
+      // Step 3: Store certificate in DB
+      if (apiData.certificates && apiData.certificates.length > 0) {
+        const cert = apiData.certificates[0];
+        await fetch("/api/certificates", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            adminAddress: smartAddress,
+            adminId: admin?.adminId || "",
+            programId,
+            studentName,
+            studentId,
+            date: date || new Date().toISOString().split('T')[0],
+            hash: cert.vc?.proof?.merkleRoot || apiData.merkleRoot,
+            merkleRoot: cert.vc?.proof?.merkleRoot || apiData.merkleRoot,
+            txHash: txHash,
+            verifyUrl: cert.verifyUrl,
+            pdfBase64: cert.pdfBase64,
+            finalPdfHash: cert.vc?.proof?.merkleRoot || apiData.merkleRoot,
+            did: cert.vc?.credentialSubject?.id || cert.did, // Store DID for verification
+            vc: cert.vc || null, // Store full VC for verification
+          }),
+        });
+      }
+
+      // Set result with API response data
       setResult({
-        hash,
+        hash: apiData.merkleRoot,
         txHash: txHash,
-        userOpHash: opId,
-        verifyUrl,
-        pdfBase64: pdfBase64String,
-        finalPdfHash,
-        userOpDetails,
-      })
+        verifyUrl: apiData.pdfResults?.[0]?.verifyUrl || '',
+        pdfBase64: apiData.pdfResults?.[0]?.pdfBase64 || '',
+        vcs: apiData.vcs,
+        merkleRoot: apiData.merkleRoot,
+        adminInfo: apiData.adminInfo,
+        transactionData: apiData.transactionData, // Store transaction data for UI display
+      });
 
-      document.body.removeChild(tempContainer);
-
+      // Reset form
       setStudentName("");
       setStudentId("");
       setProgramId("");
       setProgramName("");
       setDate("");
     } catch (err: any) {
+      console.error('Error issuing certificate:', err);
       setError(err?.message || "Failed to issue certificate");
-      const tempContainer = document.querySelector('div[style*="-9999px"]');
-      if (tempContainer) {
-        document.body.removeChild(tempContainer);
-      }
     } finally {
       setLoading(false);
     }
@@ -870,24 +621,48 @@ export default function IssuePage() {
 
         {/* Success Message */}
         {result && (
-          <div className="mt-8 rounded-2xl bg-linear-to-br from-emerald-50 to-emerald-50/40 p-6 border-2 border-emerald-200/60">
-            <div className="flex items-start gap-4">
-              <div className="rounded-full bg-emerald-100 p-2">
-                <CheckCircle2 className="h-7 w-7 text-emerald-600 shrink-0" />
-              </div>
-              <div className="flex-1">
-                <p className="font-bold text-emerald-900 font-cairo text-xl uppercase">
-                  Certificate Issued Successfully
-                </p>
-                <div className="mt-5 space-y-4">
+          <div className="mt-8 space-y-6">
+            {/* Main Success Card */}
+            <div className="rounded-2xl bg-linear-to-br from-emerald-50 to-emerald-50/40 p-6 border-2 border-emerald-200/60">
+              <div className="flex items-start gap-4">
+                <div className="rounded-full bg-emerald-100 p-2">
+                  <CheckCircle2 className="h-7 w-7 text-emerald-600 shrink-0" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-emerald-900 font-cairo text-xl uppercase">
+                    Certificate Issued Successfully
+                  </p>
+                  <div className="mt-5 space-y-4">
                   <div className="rounded-xl bg-white/60 border-2 border-emerald-100 p-4">
                     <p className="text-sm text-gray-600 font-cairo font-bold uppercase mb-2">
-                      Certificate Hash
+                      Merkle Root
                     </p>
                     <code className="text-sm text-gray-900 font-mono break-all">
-                      {result.hash}
+                      {result.merkleRoot || result.hash}
                     </code>
                   </div>
+
+                  {result.txHash && (
+                    <div className="rounded-xl bg-white/60 border-2 border-emerald-100 p-4">
+                      <p className="text-sm text-gray-600 font-cairo font-bold uppercase mb-2">
+                        Transaction Hash
+                      </p>
+                      <code className="text-sm text-gray-900 font-mono break-all">
+                        {result.txHash}
+                      </code>
+                    </div>
+                  )}
+
+                  {result.adminInfo && (
+                    <div className="rounded-xl bg-white/60 border-2 border-emerald-100 p-4">
+                      <p className="text-sm text-gray-600 font-cairo font-bold uppercase mb-2">
+                        Issued By
+                      </p>
+                      <p className="text-sm text-gray-900">
+                        {result.adminInfo.email} {result.adminInfo.isSuperAdmin ? '(Super Admin)' : ''}
+                      </p>
+                    </div>
+                  )}
                   
                   {result.pdfBase64 && (
                     <a
@@ -898,6 +673,185 @@ export default function IssuePage() {
                       Download Certificate PDF
                     </a>
                   )}
+
+                  {result.verifyUrl && (
+                    <a
+                      href={result.verifyUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-12 items-center gap-2 rounded-xl bg-linear-to-r from-blue-600 to-blue-700 px-6 text-base font-bold text-white hover:shadow-xl hover:shadow-blue-200/50 transition-all font-poppins uppercase hover:scale-105"
+                    >
+                      <ExternalLink className="h-5 w-5" />
+                      Verify Certificate
+                    </a>
+                  )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Data Storage Showcase */}
+            <div className="rounded-2xl bg-linear-to-br from-blue-50 to-indigo-50/40 p-6 border-2 border-blue-200/60">
+              <h3 className="font-bold text-blue-900 font-cairo text-lg uppercase mb-4">
+                📊 Data Storage Breakdown
+
+                {/* Transaction Data Breakdown */}
+                {result.txHash && result.txHash !== 'database_only' && result.transactionData && (
+                  <div className="mt-6 rounded-xl bg-blue-50/60 border-2 border-blue-200/60 p-5">
+                    <p className="text-sm font-bold text-blue-900 font-cairo uppercase mb-4 flex items-center gap-2">
+                      💸 Transaction Data Breakdown
+                    </p>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex items-start gap-2">
+                        <span className="font-semibold text-gray-700 min-w-[140px]">Contract:</span>
+                        <code className="text-xs text-gray-900 font-mono break-all bg-white/60 px-2 py-1 rounded">
+                          {result.transactionData.to}
+                        </code>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="font-semibold text-gray-700 min-w-[140px]">Function:</span>
+                        <code className="text-xs text-gray-900 font-mono bg-white/60 px-2 py-1 rounded">
+                          {result.transactionData.functionName}
+                        </code>
+                      </div>
+                      {result.transactionData.explanation && (
+                        <>
+                          <div className="flex items-start gap-2">
+                            <span className="font-semibold text-gray-700 min-w-[140px]">Function Selector:</span>
+                            <code className="text-xs text-gray-900 font-mono bg-white/60 px-2 py-1 rounded">
+                              {result.transactionData.explanation.functionSelector}
+                            </code>
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-blue-200">
+                            <p className="font-semibold text-gray-700 mb-2">Parameters Sent:</p>
+                            <div className="space-y-2 ml-4">
+                              <div>
+                                <span className="text-gray-600">DID Hashes ({result.transactionData.explanation.parameters.didHashes.length}):</span>
+                                <div className="mt-1 space-y-1">
+                                  {result.transactionData.explanation.parameters.didHashes.map((p: any, i: number) => (
+                                    <code key={i} className="block text-xs text-gray-900 font-mono bg-white/60 px-2 py-1 rounded break-all">
+                                      [{i}] {p.hash}
+                                    </code>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Merkle Roots ({result.transactionData.explanation.parameters.merkleRoots.length}):</span>
+                                <div className="mt-1 space-y-1">
+                                  {result.transactionData.explanation.parameters.merkleRoots.map((p: any, i: number) => (
+                                    <code key={i} className="block text-xs text-gray-900 font-mono bg-white/60 px-2 py-1 rounded break-all">
+                                      [{i}] {p.root}
+                                    </code>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-blue-200">
+                            <p className="text-xs text-blue-800 bg-blue-100/60 p-2 rounded">
+                              💡 <strong>Note:</strong> Raw hex data is normal! All Ethereum transactions use ABI-encoded hex data. 
+                              The contract decodes this and stores the hashes on-chain.
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* On-Chain Storage */}
+                <div className="rounded-xl bg-white/60 border-2 border-blue-100 p-4">
+                  <h4 className="font-bold text-blue-800 font-cairo text-sm uppercase mb-3 flex items-center gap-2">
+                    ⛓️ On-Chain (Contract)
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-semibold text-gray-700">DID Hash:</span>
+                      <code className="block text-xs text-gray-600 mt-1 break-all font-mono bg-gray-50 p-2 rounded">
+                        {result.merkleRoot || result.hash}
+                      </code>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">Merkle Root:</span>
+                      <code className="block text-xs text-gray-600 mt-1 break-all font-mono bg-gray-50 p-2 rounded">
+                        {result.merkleRoot || result.hash}
+                      </code>
+                    </div>
+                    <p className="text-xs text-blue-700 mt-2 italic">
+                      ✓ Minimal data stored on blockchain (gas efficient)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Off-Chain Storage */}
+                <div className="rounded-xl bg-white/60 border-2 border-purple-100 p-4">
+                  <h4 className="font-bold text-purple-800 font-cairo text-sm uppercase mb-3 flex items-center gap-2">
+                    📄 Off-Chain (Database/IPFS)
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-semibold text-gray-700">Verifiable Credential:</span>
+                      <p className="text-xs text-gray-600 mt-1">Full VC with student details</p>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">PDF Certificate:</span>
+                      <p className="text-xs text-gray-600 mt-1">Base64 encoded PDF document</p>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">Student Info:</span>
+                      <p className="text-xs text-gray-600 mt-1">Name, ID, Program, Date</p>
+                    </div>
+                    <p className="text-xs text-purple-700 mt-2 italic">
+                      ✓ Complete data stored off-chain (cost effective)
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* DID Verification */}
+              {result.vcs && result.vcs.length > 0 && result.vcs[0]?.credentialSubject?.id && (() => {
+                const studentDID = result.vcs[0].credentialSubject.id;
+                const extractedAddr = extractAddressFromDID(studentDID);
+                return (
+                  <div className="mt-4 rounded-xl bg-white/60 border-2 border-amber-100 p-4">
+                    <h4 className="font-bold text-amber-800 font-cairo text-sm uppercase mb-3 flex items-center gap-2">
+                      🔐 DID Verification
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="font-semibold text-gray-700">Student DID:</span>
+                        <code className="block text-xs text-gray-600 mt-1 break-all font-mono bg-gray-50 p-2 rounded">
+                          {studentDID}
+                        </code>
+                      </div>
+                      {extractedAddr && (
+                        <div>
+                          <span className="font-semibold text-gray-700">Extracted Address:</span>
+                          <code className="block text-xs text-gray-600 mt-1 break-all font-mono bg-gray-50 p-2 rounded">
+                            {extractedAddr}
+                          </code>
+                        </div>
+                      )}
+                      <p className="text-xs text-amber-700 mt-2 italic">
+                        ✓ DID verified and address extracted successfully
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Showcase Info */}
+              <div className="mt-4 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100/50 border-2 border-gray-200 p-4">
+                <h4 className="font-bold text-gray-800 font-cairo text-sm uppercase mb-2">
+                  💡 What's Essential vs Showcase
+                </h4>
+                <div className="text-xs space-y-1 text-gray-700">
+                  <p><strong>Essential:</strong> DID hash + Merkle root (on-chain) for verification</p>
+                  <p><strong>Showcase:</strong> PDF, Verify URLs, Admin info (for user experience)</p>
+                  <p className="text-gray-600 italic mt-2">
+                    Core verification only needs blockchain data - everything else enhances UX
+                  </p>
                 </div>
               </div>
             </div>

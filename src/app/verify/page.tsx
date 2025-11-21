@@ -36,7 +36,7 @@ export default function VerifyPage() {
     setLoading(true);
     setData(null);
     try {
-      const res = await fetch(`/api/verify?h=${h}`);
+      const res = await fetch(`/api/verify?did=${h}`);
       const d = await res.json();
       setData({ hash: h, ...d });
     } catch (err: any) {

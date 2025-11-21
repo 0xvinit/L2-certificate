@@ -4,8 +4,8 @@ import { verifySessionEdge } from "./lib/auth-edge";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   
-  // Only protect admin routes
-  if (pathname.startsWith("/admin")) {
+  // Protect admin routes and vc-dashboard routes
+  if (pathname.startsWith("/admin") || pathname.startsWith("/vc-dashboard")) {
     const token = req.cookies.get("token")?.value;
     const allCookies = req.cookies.getAll();
 
@@ -33,7 +33,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/vc-dashboard/:path*"],
 };
 
 

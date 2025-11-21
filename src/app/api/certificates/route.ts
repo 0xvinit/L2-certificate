@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { adminAddress, adminId, programId, studentName, studentId, date, hash, txHash, verifyUrl, pdfBase64, finalPdfHash } = body;
+  const { adminAddress, adminId, programId, studentName, studentId, date, hash, txHash, verifyUrl, pdfBase64, finalPdfHash, did, merkleRoot, vc } = body;
   if (!adminAddress || !programId || !studentName || !studentId || !date || !hash) {
     return new Response(JSON.stringify({ error: "Missing fields" }), { status: 400 });
   }
@@ -96,10 +96,13 @@ export async function POST(req: NextRequest) {
     studentId, 
     date, 
     hash, 
+    merkleRoot: merkleRoot || hash, // Use merkleRoot if provided, fallback to hash
     txHash: txHash || "", 
     verifyUrl: verifyUrl || "", 
     pdfBase64: pdfBase64 || "",
     finalPdfHash: finalPdfHash || "",
+    did: did || "", // Store DID for verification lookup
+    vc: vc || null, // Store full VC if provided
     revoked: false, 
     createdAt: now 
   };
